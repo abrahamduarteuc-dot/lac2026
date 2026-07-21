@@ -188,7 +188,13 @@
   .achip.on{background:var(--blue);border-color:var(--blue);color:#fff}
 
   /* ---------- Presentation deck ---------- */
-  .deck{position:fixed;inset:0;z-index:60;background:var(--white);display:none;flex-direction:column}
+  .deck{
+    position:fixed;inset:0;z-index:60;display:none;flex-direction:column;
+    background:
+      radial-gradient(1400px 800px at 96% -10%, var(--surface) 0%, transparent 55%),
+      radial-gradient(1100px 650px at -10% 105%, #F0F5FE 0%, transparent 50%),
+      var(--white);
+  }
   .deck.on{display:flex}
   .deck-top{
     position:absolute;top:0;left:0;right:0;z-index:3;display:flex;align-items:center;gap:12px;
@@ -225,16 +231,39 @@
   /* ---- Slide: title ---- */
   .s-inner{max-width:820px;margin:0 auto;padding:76px 40px 96px;min-height:100%;display:flex;flex-direction:column}
   .title-slide{justify-content:center;text-align:left}
+  .title-copy{max-width:640px}
   .title-slide .kicker{font:700 12px/1 var(--mono);letter-spacing:.32em;text-transform:uppercase;color:var(--blue)}
-  .title-slide h1{font-size:clamp(48px,12vw,104px);line-height:.92;letter-spacing:-.04em;margin:18px 0 0}
+  .title-slide h1{font-size:clamp(48px,11vw,116px);line-height:.92;letter-spacing:-.04em;margin:18px 0 0}
   .title-slide h1 em{font-style:normal;color:var(--blue)}
   .title-slide .rule{height:4px;width:96px;background:linear-gradient(90deg,var(--blue),transparent);margin:26px 0;border-radius:2px}
-  .title-slide .lead{font-size:18px;color:var(--muted);max-width:520px;line-height:1.5}
-  .title-slide .facts{display:flex;flex-wrap:wrap;gap:14px 32px;margin-top:34px}
-  .fact{display:flex;flex-direction:column;gap:4px}
+  .title-slide .lead{font-size:19px;color:var(--muted);max-width:520px;line-height:1.5}
+  .title-slide .facts{display:flex;flex-wrap:wrap;gap:14px 40px;margin-top:38px}
+  .fact{display:flex;flex-direction:column;gap:5px}
   .fact label{color:var(--muted)}
-  .fact b{font-size:17px;letter-spacing:-.01em}
-  .fact .who{font-family:var(--mono);font-size:15px}
+  .fact b{font-size:19px;letter-spacing:-.01em}
+  .fact .who{font-family:var(--mono);font-size:16px}
+  .swatch-panel{display:none}
+  .swatch{border-radius:12px;box-shadow:0 3px 10px rgba(20,60,130,.14)}
+
+  @media (min-width:900px){
+    .s-inner{max-width:1180px;padding:0 56px}
+    .title-slide{display:grid;grid-template-columns:1.15fr .85fr;align-items:center;gap:60px}
+    .swatch-panel{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;aspect-ratio:6/5}
+    .swatch:nth-child(3n+2){transform:translateY(14px)}
+    .swatch:nth-child(5n){transform:translateY(-10px)}
+    .entry-slide .s-inner,.deck-empty{max-width:900px;margin:0 auto}
+  }
+  @media (min-width:1400px){
+    .s-inner{max-width:1360px;padding:0 80px}
+    .title-slide h1{font-size:clamp(80px,9vw,150px)}
+    .title-slide .lead{font-size:21px}
+    .fact b{font-size:21px}
+    .entry-slide h2{font-size:clamp(38px,5.2vw,64px)}
+    .entry-slide .s-inner{max-width:1000px}
+    .spec .val{font-size:18px}
+    .block p{font-size:17.5px}
+    .callout b{font-size:18px}
+  }
 
   /* ---- Slide: entry (also reused by coverage slide) ---- */
   .entry-slide .eyebrow{display:flex;align-items:center;gap:12px;font:700 12px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--blue)}
@@ -301,7 +330,9 @@
     .track{display:block !important;transform:none !important}
     .slide{min-width:0 !important;width:100% !important;height:auto !important;page-break-after:always;overflow:visible !important}
     .s-inner{padding:36px 40px !important;min-height:0}
-    .title-slide{min-height:90vh}
+    .title-slide{min-height:90vh;display:block !important}
+    .swatch-panel{display:none !important}
+    .title-copy{max-width:100% !important}
     body{background:#fff}
   }
 </style>
@@ -949,18 +980,32 @@
       + '</div></div>';
   }
 
+  function buildSwatchGrid(){
+    var palette = ["#EAF1FC","#D6E2F5","#BFD3F2","#9DBBF0","#7AA2ED","#588AEA","#2E6CF6","#1B4FC2","#123A96"];
+    var n = 24;
+    var html = "";
+    for(var i=0;i<n;i++){
+      var c = palette[(i*5 + Math.floor(i/6)) % palette.length];
+      html += '<div class="swatch" style="background:'+c+'"></div>';
+    }
+    return html;
+  }
+
   function buildDeck(){
     var track = $("#track");
     var title = '<div class="slide"><div class="s-inner title-slide">'
-      + '<div class="kicker">Feria internacional · México</div>'
-      + '<h1>'+esc(meta.title).replace(/2026/,'<em>2026</em>')+'</h1>'
-      + '<div class="rule"></div>'
-      + '<p class="lead">'+esc(meta.subtitle)+'</p>'
-      + '<div class="facts">'
-      +   '<div class="fact"><label>Asistentes</label><b class="who">'+esc(meta.people)+'</b></div>'
-      +   '<div class="fact"><label>Fechas</label><b>'+esc(meta.dates)+'</b></div>'
-      +   '<div class="fact"><label>Proveedores registrados</label><b>'+entries.length+'</b></div>'
-      + '</div></div></div>';
+      + '<div class="title-copy">'
+      +   '<div class="kicker">Feria internacional · México</div>'
+      +   '<h1>'+esc(meta.title).replace(/2026/,'<em>2026</em>')+'</h1>'
+      +   '<div class="rule"></div>'
+      +   '<p class="lead">'+esc(meta.subtitle)+'</p>'
+      +   '<div class="facts">'
+      +     '<div class="fact"><label>Asistentes</label><b class="who">'+esc(meta.people)+'</b></div>'
+      +     '<div class="fact"><label>Fechas</label><b>'+esc(meta.dates)+'</b></div>'
+      +   '</div>'
+      + '</div>'
+      + '<div class="swatch-panel">'+buildSwatchGrid()+'</div>'
+      + '</div></div>';
 
     var coverage = buildCoverageSlide();
 
