@@ -168,6 +168,13 @@
   .iconbtn:disabled{opacity:.35;cursor:not-allowed}
 
   /* ---------- Agenda ---------- */
+  .agenda-search{position:relative;margin-bottom:16px}
+  .agenda-search input{width:100%;padding:12px 42px 12px 42px;border:1px solid var(--border);border-radius:999px;font-size:15px;color:var(--ink);background:#fff;transition:.15s}
+  .agenda-search input:focus{outline:0;border-color:var(--blue);box-shadow:0 0 0 4px rgba(46,108,246,.14)}
+  .agenda-search .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--muted);pointer-events:none}
+  .agenda-search .search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:26px;height:26px;border:0;background:var(--surface);color:var(--muted);border-radius:50%;cursor:pointer;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center}
+  .agenda-search .search-clear:hover{color:var(--blue)}
+  mark{background:#DCE8FF;color:var(--blue-strong);border-radius:3px;padding:0 2px;font-weight:800}
   .agenda-day{margin-bottom:8px}
   .agenda-room{margin:0 0 16px}
   .agenda-room h4{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);margin:0 0 9px}
@@ -449,6 +456,11 @@
 
   <!-- ============ AGENDA VIEW ============ -->
   <main class="wrap" id="agendaView" style="display:none">
+    <div class="agenda-search">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="agendaSearch" placeholder="Buscar por nombre, tema o expositor..." autocomplete="off">
+      <button class="search-clear" id="agendaSearchClear" style="display:none" title="Limpiar">✕</button>
+    </div>
     <div class="toolrow">
       <div class="ghost" style="cursor:default"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg><span id="agendaProgress">Cargando…</span></div>
     </div>
@@ -858,36 +870,67 @@
   });
 
   /* ---------------- Agenda: render + interacción ---------------- */
+  var agendaQuery = "";
+  function normalizeStr(s){
+    return (s||"").toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+  }
+  function highlightMatch(text, rawQuery){
+    var out = esc(text);
+    var q = (rawQuery||"").trim();
+    if(!q) return out;
+    var escQ = q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+    try{ return out.replace(new RegExp("("+escQ+")","ig"), "<mark>$1</mark>"); }
+    catch(e){ return out; }
+  }
+
   function renderAgenda(){
+    var q = normalizeStr(agendaQuery);
     var html = "";
+    var totalVisible = 0;
     AGENDA_RAW.forEach(function(d){
       var daySessions = SESSIONS.filter(function(s){return s.dayKey===d.key;});
       var doneCount = daySessions.filter(function(s){ var st=agendaState[s.id]; return st&&st.done; }).length;
-      html += '<div class="agenda-day" data-daykey="'+d.key+'">';
-      html += '<div class="listhead" style="margin-top:22px"><h3>'+esc(d.day)+'</h3><span class="count daycount">'+doneCount+' / '+daySessions.length+'</span></div>';
+      var roomsHtml = "";
+      var dayHasMatch = false;
       d.rooms.forEach(function(r, ri){
-        html += '<div class="agenda-room"><h4>'+esc(r.room)+'<span class="line"></span></h4>';
+        var itemsHtml = "";
+        var roomHasMatch = false;
         r.items.forEach(function(it, ii){
+          if(q){
+            var hay = normalizeStr(it.title+" "+it.speaker+" "+r.room+" "+(it.tag||""));
+            if(hay.indexOf(q) === -1) return;
+          }
+          roomHasMatch = true; dayHasMatch = true; totalVisible++;
           var id = d.key+"_"+ri+"_"+ii;
           var st = agendaState[id] || {done:false, who:""};
           var tags = "";
           if(it.tag) tags += '<span class="sesstag">'+esc(it.tag)+'</span>';
           if(it.en) tags += '<span class="sesstag">Inglés</span>';
-          html += '<div class="sessrow'+(st.done?' done':'')+'" data-id="'+id+'">'
+          itemsHtml += '<div class="sessrow'+(st.done?' done':'')+'" data-id="'+id+'">'
             + '<button class="sesscheck'+(st.done?' on':'')+'" data-act="toggle" data-id="'+id+'" title="Marcar como asistido"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg></button>'
             + '<div class="sessmain">'
             +   '<span class="sesstime">'+esc(it.time)+'</span>'+(tags?'<span class="sesstags">'+tags+'</span>':'')
-            +   '<div class="sesstitle">'+esc(it.title)+'</div>'
-            +   '<div class="sessspeaker">'+esc(it.speaker)+'</div>'
+            +   '<div class="sesstitle">'+highlightMatch(it.title, agendaQuery)+'</div>'
+            +   '<div class="sessspeaker">'+highlightMatch(it.speaker, agendaQuery)+'</div>'
             +   '<div class="assign">'
             +     ['Abraham','Vicente','Ambos'].map(function(w){ return '<span class="achip'+(st.who===w?' on':'')+'" data-act="assign" data-id="'+id+'" data-who="'+w+'">'+w+'</span>'; }).join("")
             +   '</div>'
             + '</div></div>';
         });
-        html += '</div>';
+        if(roomHasMatch){
+          roomsHtml += '<div class="agenda-room"><h4>'+esc(r.room)+'<span class="line"></span></h4>'+itemsHtml+'</div>';
+        }
       });
-      html += '</div>';
+      if(!q || dayHasMatch){
+        html += '<div class="agenda-day" data-daykey="'+d.key+'">';
+        html += '<div class="listhead" style="margin-top:22px"><h3>'+esc(d.day)+'</h3><span class="count daycount">'+doneCount+' / '+daySessions.length+'</span></div>';
+        html += roomsHtml;
+        html += '</div>';
+      }
     });
+    if(q && totalVisible===0){
+      html = '<div class="empty"><b>Sin resultados para "'+esc(agendaQuery)+'"</b>Prueba con otra palabra, o revisa el nombre del expositor o la sala. Si la charla no está en el programa oficial, avísame y te agrego una forma de sumarla a mano.</div>';
+    }
     $("#agendaList").innerHTML = html;
     updateAgendaProgress();
   }
@@ -1162,6 +1205,18 @@
   });
   $("#f_company").addEventListener("keydown", function(ev){ if(ev.key==="Enter"){ ev.preventDefault(); save(); } });
   $("#btnSync").addEventListener("click", function(){ refreshFromServer(false); });
+  $("#agendaSearch").addEventListener("input", function(){
+    agendaQuery = this.value;
+    $("#agendaSearchClear").style.display = agendaQuery ? "" : "none";
+    renderAgenda();
+  });
+  $("#agendaSearchClear").addEventListener("click", function(){
+    agendaQuery = "";
+    $("#agendaSearch").value = "";
+    $("#agendaSearchClear").style.display = "none";
+    renderAgenda();
+    $("#agendaSearch").focus();
+  });
 
   /* ---------------- Init ---------------- */
   fillForm(null);
