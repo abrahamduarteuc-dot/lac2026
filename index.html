@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>LAC 2026 — Bitácora de proveedores</title>
+<style>
+  :root{
+    --white:#FFFFFF;
+    --ink:#0F2540;         /* azul marino profundo para texto */
+    --muted:#5A6B82;       /* texto secundario */
+    --blue:#2E6CF6;        /* azul primario */
+    --blue-strong:#1B4FC2;
+    --surface:#EAF1FC;     /* azul suave superficie */
+    --surface-2:#F4F8FE;
+    --border:#D6E2F5;
+    --border-2:#E6EEFA;
+    --ok:#1F9D64;
+    --mid:#E0A100;
+    --low:#8A96A8;
+    --shadow:0 10px 30px rgba(20,60,130,.10);
+    --shadow-sm:0 4px 14px rgba(20,60,130,.08);
+    --radius:16px;
+    --radius-sm:11px;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:var(--sans);
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 600px at 90% -10%, var(--surface) 0%, transparent 60%),
+      radial-gradient(900px 500px at -10% 0%, #F0F5FE 0%, transparent 55%),
+      var(--white);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit}
+  input,select,textarea{font-family:inherit}
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:40;
+    display:flex;align-items:center;gap:12px;
+    padding:12px 16px;
+    background:rgba(255,255,255,.82);
+    backdrop-filter:saturate(160%) blur(10px);
+    border-bottom:1px solid var(--border-2);
+  }
+  .brand{display:flex;flex-direction:column;line-height:1;margin-right:auto}
+  .brand b{font-size:19px;letter-spacing:-.02em}
+  .brand span{font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:.14em;text-transform:uppercase}
+  .brand b em{font-style:normal;color:var(--blue)}
+
+  .seg{display:inline-flex;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:3px}
+  .seg button{
+    border:0;background:transparent;color:var(--muted);
+    font-weight:600;font-size:13.5px;padding:8px 14px;border-radius:999px;cursor:pointer;
+    transition:.18s;white-space:nowrap;
+  }
+  .seg button.on{background:var(--white);color:var(--ink);box-shadow:var(--shadow-sm)}
+
+  /* ---------- Layout ---------- */
+  .wrap{max-width:820px;margin:0 auto;padding:20px 16px 120px}
+  .toolrow{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+  .ghost{
+    border:1px solid var(--border);background:var(--white);color:var(--ink);
+    font-weight:600;font-size:13px;padding:9px 14px;border-radius:999px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:7px;transition:.15s;
+  }
+  .ghost:hover{border-color:var(--blue);color:var(--blue)}
+  .ghost svg{width:15px;height:15px}
+
+  /* ---------- Card / Form ---------- */
+  .card{
+    background:var(--white);border:1px solid var(--border-2);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .card-head{
+    padding:16px 20px;border-bottom:1px solid var(--border-2);
+    display:flex;align-items:center;gap:10px;
+    background:linear-gradient(180deg,var(--surface-2),var(--white));
+  }
+  .card-head h2{margin:0;font-size:16px;letter-spacing:-.01em}
+  .card-head .pill{margin-left:auto;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);background:var(--surface);border:1px solid var(--border);padding:5px 10px;border-radius:999px}
+  .form{padding:18px 20px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field.full{grid-column:1/-1}
+  label{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--muted);text-transform:uppercase}
+  input[type=text],input[type=tel],input[type=email],input[type=url],select,textarea{
+    border:1px solid var(--border);border-radius:var(--radius-sm);
+    padding:11px 13px;font-size:15px;color:var(--ink);background:var(--white);
+    transition:.15s;width:100%;
+  }
+  input:focus,select:focus,textarea:focus{outline:0;border-color:var(--blue);box-shadow:0 0 0 4px rgba(46,108,246,.14)}
+  textarea{resize:vertical;min-height:64px}
+  .req{color:var(--blue)}
+
+  .highlight-field{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px 14px}
+  .highlight-field label{color:var(--blue-strong)}
+  .highlight-field input{margin-top:2px;background:#fff}
+  .highlight-field small{display:block;color:var(--muted);font-size:11.5px;margin-top:6px;text-transform:none;font-weight:500;letter-spacing:0}
+
+  .interest{display:flex;gap:8px}
+  .interest label{display:none}
+  .chip{
+    flex:1;text-align:center;border:1px solid var(--border);border-radius:var(--radius-sm);
+    padding:10px;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted);background:var(--white);transition:.15s;
+    display:flex;align-items:center;justify-content:center;gap:7px;
+  }
+  .chip .dot{width:9px;height:9px;border-radius:50%}
+  .chip[data-v=Alto] .dot{background:var(--ok)}
+  .chip[data-v=Medio] .dot{background:var(--mid)}
+  .chip[data-v=Bajo] .dot{background:var(--low)}
+  .chip.on{border-color:var(--blue);color:var(--ink);background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--blue)}
+
+  .imgpick{
+    grid-column:1/-1;display:flex;align-items:center;gap:14px;
+    border:1px dashed var(--border);border-radius:var(--radius-sm);padding:12px;background:var(--surface-2);
+  }
+  .imgpick .thumb{width:64px;height:64px;border-radius:10px;object-fit:cover;background:var(--surface);border:1px solid var(--border);flex:none}
+  .imgpick .thumb.empty{display:flex;align-items:center;justify-content:center;color:var(--muted)}
+  .imgpick .meta{flex:1;min-width:0}
+  .imgpick .meta small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+  .filebtn{position:relative;overflow:hidden}
+  .filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+  .form-actions{display:flex;gap:10px;margin-top:18px}
+  .primary{
+    flex:1;border:0;background:linear-gradient(180deg,var(--blue),var(--blue-strong));color:#fff;
+    font-weight:700;font-size:15px;padding:13px;border-radius:var(--radius-sm);cursor:pointer;
+    box-shadow:0 8px 20px rgba(46,108,246,.28);transition:.15s;
+  }
+  .primary:active{transform:translateY(1px)}
+  .cancel{border:1px solid var(--border);background:#fff;color:var(--muted);font-weight:600;padding:13px 18px;border-radius:var(--radius-sm);cursor:pointer}
+
+  /* ---------- List ---------- */
+  .listhead{display:flex;align-items:center;margin:26px 4px 12px}
+  .listhead h3{margin:0;font-size:14px;letter-spacing:.02em}
+  .listhead .count{margin-left:auto;font:600 12px/1 var(--mono);color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:6px 10px;border-radius:999px}
+  .empty{
+    text-align:center;color:var(--muted);padding:40px 20px;border:1px dashed var(--border);
+    border-radius:var(--radius);background:var(--surface-2);
+  }
+  .empty b{color:var(--ink);display:block;margin-bottom:4px}
+  .rows{display:flex;flex-direction:column;gap:10px}
+  .row{
+    display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--border-2);
+    border-radius:14px;padding:10px 12px;box-shadow:var(--shadow-sm);
+  }
+  .row .rthumb{width:48px;height:48px;border-radius:10px;object-fit:cover;flex:none;background:var(--surface);border:1px solid var(--border)}
+  .row .rthumb.empty{display:flex;align-items:center;justify-content:center;color:var(--blue);font-weight:800;font-size:18px}
+  .row .rmain{flex:1;min-width:0}
+  .row .rmain b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .rmain b .star{color:var(--blue);margin-left:4px}
+  .row .rmain small{color:var(--muted);font-size:12px;display:flex;align-items:center;gap:6px;margin-top:2px}
+  .row .rmain small .cat{color:var(--blue);font-weight:700}
+  .idot{width:8px;height:8px;border-radius:50%}
+  .idot.Alto{background:var(--ok)}.idot.Medio{background:var(--mid)}.idot.Bajo{background:var(--low)}
+  .row .racts{display:flex;gap:4px;flex:none}
+  .iconbtn{width:34px;height:34px;border:1px solid var(--border-2);background:#fff;border-radius:9px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:.15s}
+  .iconbtn:hover{border-color:var(--blue);color:var(--blue)}
+  .iconbtn.danger:hover{border-color:#E05656;color:#E05656}
+  .iconbtn svg{width:16px;height:16px}
+  .iconbtn:disabled{opacity:.35;cursor:not-allowed}
+
+  /* ---------- Agenda ---------- */
+  .agenda-day{margin-bottom:8px}
+  .agenda-room{margin:0 0 16px}
+  .agenda-room h4{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);margin:0 0 9px}
+  .agenda-room h4 .line{flex:1;height:1px;background:var(--border)}
+  .sessrow{display:flex;gap:11px;align-items:flex-start;background:#fff;border:1px solid var(--border-2);border-radius:14px;padding:11px 12px;margin-bottom:8px;box-shadow:var(--shadow-sm);transition:.15s}
+  .sessrow.done{background:var(--surface-2)}
+  .sesscheck{flex:none;width:27px;height:27px;margin-top:1px;border-radius:8px;border:1.6px solid var(--border);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:transparent;transition:.15s}
+  .sesscheck.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .sesscheck svg{width:15px;height:15px}
+  .sessmain{flex:1;min-width:0}
+  .sesstime{font:700 12px/1 var(--mono);color:var(--muted)}
+  .sesstags{margin-left:8px;display:inline-flex;gap:5px;vertical-align:middle}
+  .sesstag{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--surface);color:var(--blue);border:1px solid var(--border)}
+  .sesstitle{font-size:14.5px;font-weight:700;margin-top:5px;line-height:1.32}
+  .sessspeaker{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.4}
+  .assign{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+  .achip{font-size:11px;font-weight:700;padding:5px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;transition:.15s}
+  .achip.on{background:var(--blue);border-color:var(--blue);color:#fff}
+
+  /* ---------- Presentation deck ---------- */
+  .deck{position:fixed;inset:0;z-index:60;background:var(--white);display:none;flex-direction:column}
+  .deck.on{display:flex}
+  .deck-top{
+    position:absolute;top:0;left:0;right:0;z-index:3;display:flex;align-items:center;gap:12px;
+    padding:14px 18px;padding-top:max(14px,env(safe-area-inset-top));
+  }
+  .deck-top .dcount{font:700 13px/1 var(--mono);color:var(--muted);letter-spacing:.08em}
+  .deck-top .dexit{
+    margin-left:auto;border:1px solid var(--border);background:rgba(255,255,255,.7);color:var(--ink);
+    font-weight:600;font-size:13px;padding:8px 14px;border-radius:999px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;
+  }
+  .viewport{flex:1;overflow:hidden;position:relative}
+  .track{display:flex;height:100%;transition:transform .42s cubic-bezier(.22,.61,.36,1)}
+  .slide{min-width:100%;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+  .tapzone{position:absolute;top:0;bottom:0;width:22%;z-index:2;cursor:pointer}
+  .tapzone.left{left:0}.tapzone.right{right:0}
+
+  .deck-nav{
+    position:absolute;left:0;right:0;bottom:0;z-index:3;
+    display:flex;align-items:center;justify-content:center;gap:14px;
+    padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));
+    background:linear-gradient(0deg,rgba(255,255,255,.95),transparent);
+  }
+  .navbtn{
+    border:1px solid var(--border);background:#fff;color:var(--ink);border-radius:999px;
+    width:52px;height:52px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm);transition:.15s;
+  }
+  .navbtn:hover{border-color:var(--blue);color:var(--blue)}
+  .navbtn:disabled{opacity:.3;cursor:not-allowed}
+  .navbtn svg{width:22px;height:22px}
+  .progress{flex:1;max-width:280px;height:5px;background:var(--surface);border-radius:999px;overflow:hidden}
+  .progress i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--blue-strong));width:0;transition:width .35s}
+
+  /* ---- Slide: title ---- */
+  .s-inner{max-width:820px;margin:0 auto;padding:76px 40px 96px;min-height:100%;display:flex;flex-direction:column}
+  .title-slide{justify-content:center;text-align:left}
+  .title-slide .kicker{font:700 12px/1 var(--mono);letter-spacing:.32em;text-transform:uppercase;color:var(--blue)}
+  .title-slide h1{font-size:clamp(48px,12vw,104px);line-height:.92;letter-spacing:-.04em;margin:18px 0 0}
+  .title-slide h1 em{font-style:normal;color:var(--blue)}
+  .title-slide .rule{height:4px;width:96px;background:linear-gradient(90deg,var(--blue),transparent);margin:26px 0;border-radius:2px}
+  .title-slide .lead{font-size:18px;color:var(--muted);max-width:520px;line-height:1.5}
+  .title-slide .facts{display:flex;flex-wrap:wrap;gap:14px 32px;margin-top:34px}
+  .fact{display:flex;flex-direction:column;gap:4px}
+  .fact label{color:var(--muted)}
+  .fact b{font-size:17px;letter-spacing:-.01em}
+  .fact .who{font-family:var(--mono);font-size:15px}
+
+  /* ---- Slide: entry (also reused by coverage slide) ---- */
+  .entry-slide .eyebrow{display:flex;align-items:center;gap:12px;font:700 12px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--blue)}
+  .entry-slide .eyebrow .num{color:var(--muted)}
+  .entry-slide .eyebrow .badge{margin-left:auto;display:inline-flex;align-items:center;gap:7px;color:var(--ink);background:var(--surface);border:1px solid var(--border);padding:6px 12px;border-radius:999px;letter-spacing:.06em}
+  .entry-slide h2{font-size:clamp(30px,6.5vw,52px);line-height:1.02;letter-spacing:-.03em;margin:16px 0 0}
+  .entry-slide .erule{height:3px;width:60px;background:var(--blue);margin:20px 0 24px;border-radius:2px}
+  .ephoto{width:100%;max-height:280px;object-fit:cover;border-radius:14px;border:1px solid var(--border);margin-bottom:24px;background:var(--surface)}
+  .callout{background:var(--surface);border-left:4px solid var(--blue);border-radius:10px;padding:14px 16px;margin-bottom:22px}
+  .callout b{font-size:16px;font-weight:700;line-height:1.42;color:var(--ink)}
+  .specs{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border-2);border:1px solid var(--border-2);border-radius:14px;overflow:hidden;margin-bottom:22px}
+  .spec{background:#fff;padding:14px 16px;min-width:0}
+  .spec.full{grid-column:1/-1}
+  .spec label{color:var(--muted);font-size:11px}
+  .spec .val{font-size:16px;margin-top:5px;word-break:break-word}
+  .spec .val.mono{font-family:var(--mono);font-size:15px}
+  .spec a{color:var(--blue-strong);text-decoration:none}
+  .block{margin-bottom:20px}
+  .block label{color:var(--muted);font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+  .block p{margin:8px 0 0;font-size:16px;line-height:1.55;white-space:pre-wrap}
+  .noecho{color:var(--muted);font-style:italic}
+
+  /* ---- Slide: coverage ---- */
+  .cov-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:26px}
+  .cov-card{background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:16px}
+  .cov-card label{color:var(--muted);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase}
+  .cov-card b{display:block;font-size:26px;margin-top:4px;letter-spacing:-.02em}
+  .cov-list{display:flex;flex-direction:column;gap:0}
+  .cov-item{display:flex;gap:10px;align-items:baseline;font-size:14px;border-bottom:1px solid var(--border-2);padding:9px 0}
+  .cov-item .t{font-family:var(--mono);font-size:11px;color:var(--muted);flex:none;width:92px}
+  .cov-item .ti{flex:1}
+  .cov-item .who{margin-left:auto;font-size:10.5px;color:var(--blue);font-weight:800;flex:none;text-transform:uppercase;letter-spacing:.04em}
+
+  .deck-empty{margin:auto;text-align:center;color:var(--muted);padding:40px}
+  .deck-empty b{display:block;color:var(--ink);font-size:20px;margin-bottom:8px}
+
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:11px 18px;border-radius:999px;font-size:14px;font-weight:600;
+    box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.25s;z-index:80;
+  }
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media (max-width:640px){
+    .grid{grid-template-columns:1fr}
+    .s-inner{padding:70px 22px 92px}
+    .specs{grid-template-columns:1fr}
+    .title-slide h1{margin-top:14px}
+    .cov-grid{grid-template-columns:1fr 1fr}
+  }
+  @media (max-width:380px){
+    .seg button{padding:7px 10px;font-size:12.5px}
+    .brand span{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .track{transition:none}
+  }
+
+  /* ---------- Print / PDF ---------- */
+  @media print{
+    .topbar,.wrap,.deck-top,.deck-nav,.tapzone,.toast{display:none !important}
+    .deck{position:static !important;display:block !important;background:#fff}
+    .viewport{overflow:visible !important}
+    .track{display:block !important;transform:none !important}
+    .slide{min-width:0 !important;width:100% !important;height:auto !important;page-break-after:always;overflow:visible !important}
+    .s-inner{padding:36px 40px !important;min-height:0}
+    .title-slide{min-height:90vh}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand"><b>LAC <em>2026</em></b><span>Bitácora de proveedores</span></div>
+    <div class="seg" id="seg">
+      <button data-mode="capture" class="on">Capturar</button>
+      <button data-mode="agenda">Agenda</button>
+      <button data-mode="present">Presentar</button>
+    </div>
+  </div>
+
+  <!-- ============ CAPTURE VIEW ============ -->
+  <main class="wrap" id="captureView">
+    <div class="toolrow">
+      <button class="ghost" id="btnCover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>Editar portada</button>
+      <button class="ghost" id="btnExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Exportar</button>
+      <button class="ghost filebtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M5 3h14"/></svg>Importar<input type="file" id="fileImport" accept="application/json"></button>
+      <button class="ghost" id="btnPrint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>Imprimir / PDF</button>
+      <button class="ghost" id="btnSync" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>Sincronizar</button>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2 id="formTitle">Nuevo proveedor</h2>
+        <span class="pill" id="formPill">Agregar</span>
+      </div>
+      <div class="form">
+        <input type="hidden" id="f_id">
+        <div class="grid">
+          <div class="field full">
+            <label for="f_company">Empresa / proveedor <span class="req">*</span></label>
+            <input type="text" id="f_company" placeholder="Ej. Química Andina S.A." autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="f_cat">Categoría</label>
+            <select id="f_cat">
+              <option>Materia prima</option>
+              <option>Resinas</option>
+              <option>Pigmentos</option>
+              <option>Aditivos</option>
+              <option>Equipos / maquinaria</option>
+              <option>Servicios</option>
+              <option>Envases</option>
+              <option>Otro</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f_stand">Ubicación / stand</label>
+            <input type="text" id="f_stand" placeholder="Ej. Pabellón B, stand 214" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="f_contact">Persona de contacto</label>
+            <input type="text" id="f_contact" placeholder="Nombre y cargo" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="f_phone">Teléfono</label>
+            <input type="tel" id="f_phone" placeholder="+52 ..." autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="f_email">Email</label>
+            <input type="email" id="f_email" placeholder="contacto@empresa.com" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="f_web">Sitio web</label>
+            <input type="url" id="f_web" placeholder="www.empresa.com" autocomplete="off">
+          </div>
+          <div class="field full">
+            <label for="f_products">Productos / qué ofrecen</label>
+            <textarea id="f_products" placeholder="Líneas de producto, tecnologías, aplicaciones..."></textarea>
+          </div>
+          <div class="field full">
+            <label for="f_notes">Observaciones / por qué es relevante</label>
+            <textarea id="f_notes" placeholder="Oportunidad para Codelpa, muestras solicitadas, próximos pasos..."></textarea>
+          </div>
+          <div class="field full highlight-field">
+            <label for="f_highlight">★ Dato destacado (opcional)</label>
+            <input type="text" id="f_highlight" placeholder="Ej. Único proveedor con línea libre de PFAS ya certificada en LATAM" autocomplete="off">
+            <small>Aparece resaltado arriba de la ficha en la presentación. Úsalo para lo que más quieras que recuerden los ejecutivos.</small>
+          </div>
+          <div class="field full">
+            <label>Nivel de interés</label>
+            <div class="interest" id="interest">
+              <div class="chip on" data-v="Alto"><span class="dot"></span>Alto</div>
+              <div class="chip" data-v="Medio"><span class="dot"></span>Medio</div>
+              <div class="chip" data-v="Bajo"><span class="dot"></span>Bajo</div>
+            </div>
+          </div>
+          <div class="imgpick">
+            <img class="thumb empty" id="f_thumb" alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%235A6B82' stroke-width='2'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Ccircle cx='9' cy='9' r='2'/%3E%3Cpath d='m21 15-3.6-3.6a2 2 0 0 0-2.8 0L6 20'/%3E%3C/svg%3E">
+            <div class="meta">
+              <b style="font-size:14px">Foto del stand / producto</b>
+              <small>Se comprime sola. Puedes usar la cámara o la galería.</small>
+            </div>
+            <button class="ghost filebtn" type="button">Elegir<input type="file" id="f_image" accept="image/*"></button>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="primary" id="btnSave">Agregar proveedor</button>
+          <button class="cancel" id="btnReset" style="display:none">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="listhead">
+      <h3>Proveedores capturados</h3>
+      <span class="count" id="listCount">0</span>
+    </div>
+    <div id="list"></div>
+  </main>
+
+  <!-- ============ AGENDA VIEW ============ -->
+  <main class="wrap" id="agendaView" style="display:none">
+    <div class="toolrow">
+      <div class="ghost" style="cursor:default"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg><span id="agendaProgress">Cargando…</span></div>
+    </div>
+    <div id="agendaList"></div>
+  </main>
+
+  <!-- ============ PRESENT VIEW ============ -->
+  <div class="deck" id="deck">
+    <div class="deck-top">
+      <div class="dcount" id="dCount">01 / 01</div>
+      <button class="dexit" id="dExit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>Salir</button>
+    </div>
+    <div class="viewport">
+      <div class="tapzone left" id="tapLeft"></div>
+      <div class="tapzone right" id="tapRight"></div>
+      <div class="track" id="track"></div>
+    </div>
+    <div class="deck-nav">
+      <button class="navbtn" id="navPrev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m15 18-6-6 6-6"/></svg></button>
+      <div class="progress"><i id="progressBar"></i></div>
+      <button class="navbtn" id="navNext"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m9 18 6-6-6-6"/></svg></button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- Storage (window.storage -> localStorage -> memoria) ---------------- */
+  var mem = {};
+  var hasWS = (typeof window !== "undefined" && window.storage && typeof window.storage.get === "function");
+  var K_META = "lac2026:meta";
+  var K_INDEX = "lac2026:index";
+  var K_AGENDA = "lac2026:agenda";
+  var K_ENTRY = function(id){ return "lac2026:e:" + id; };
+
+  var Store = {
+    get: async function(k){
+      if(hasWS){ try{ var r = await window.storage.get(k); return r ? r.value : null; }catch(e){ return null; } }
+      try{ var v = localStorage.getItem(k); return v; }catch(e){ return (k in mem)? mem[k] : null; }
+    },
+    set: async function(k,v){
+      if(hasWS){ try{ await window.storage.set(k, v); return true; }catch(e){} }
+      try{ localStorage.setItem(k,v); return true; }catch(e){ mem[k]=v; return true; }
+    },
+    del: async function(k){
+      if(hasWS){ try{ await window.storage.delete(k); return true; }catch(e){} }
+      try{ localStorage.removeItem(k); return true; }catch(e){ delete mem[k]; return true; }
+    }
+  };
+
+  /* ---------------- Backend compartido (opcional) ---------------- */
+  // Pega aquí la URL de tu Apps Script Web App (termina en /exec).
+  // Vacío = la app funciona solo en este dispositivo, como antes.
+  var CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycbxSfGF6IZfK548qtxARVn0SwFyLY0gPhqrFJXMuikor1NujezdVP7Vx2kX83EiojD07/exec" };
+  var lastLocalWriteAt = 0;
+  function markLocalWrite(){ lastLocalWriteAt = Date.now(); }
+
+  function normalizeEntry(e){
+    var out = {};
+    ["id","company","cat","stand","contact","phone","email","web","products","notes","highlight","interest","image"].forEach(function(k){
+      out[k] = (e[k]===undefined || e[k]===null) ? "" : String(e[k]);
+    });
+    return out;
+  }
+
+  async function remotePost(payload){
+    if(!CONFIG.API_URL) return;
+    try{
+      await fetch(CONFIG.API_URL, {
+        method:"POST", mode:"no-cors",
+        headers:{"Content-Type":"text/plain;charset=utf-8"},
+        body: JSON.stringify(payload)
+      });
+    }catch(e){ /* sin conexión: el cambio ya quedó guardado localmente */ }
+  }
+  function remoteUpsertEntry(entry, order){ return remotePost({action:"upsertEntry", entry:entry, order:order}); }
+  function remoteDeleteEntry(id){ return remotePost({action:"deleteEntry", id:id}); }
+  function remoteReorder(ids){ return remotePost({action:"reorder", ids:ids}); }
+  function remoteSetAgenda(id, done, who){ return remotePost({action:"setAgenda", id:id, done:done, who:who}); }
+  function remoteSetMeta(m){ return remotePost({action:"setMeta", meta:m}); }
+
+  async function refreshFromServer(silent){
+    if(!CONFIG.API_URL) return;
+    try{
+      var res = await fetch(CONFIG.API_URL + "?action=all&t=" + Date.now());
+      if(!res.ok) throw new Error("http "+res.status);
+      var data = await res.json();
+      if(data && Array.isArray(data.entries)){
+        entries = data.entries.map(normalizeEntry);
+        for(var i=0;i<entries.length;i++){ await persistEntry(entries[i]); }
+        await persistIndex();
+      }
+      if(data && data.agenda){ agendaState = data.agenda; await persistAgenda(); }
+      if(data && data.meta){
+        if(data.meta.title) meta.title = data.meta.title;
+        if(data.meta.subtitle) meta.subtitle = data.meta.subtitle;
+        if(data.meta.people) meta.people = data.meta.people;
+        if(data.meta.dates) meta.dates = data.meta.dates;
+        await persistMeta();
+      }
+      renderList(); renderAgenda();
+      if(!silent) toast("Sincronizado con el equipo");
+    }catch(err){
+      if(!silent) toast("Sin conexión — viendo datos locales");
+    }
+  }
+
+  /* ---------------- Estado ---------------- */
+  var meta = { title:"LAC 2026", subtitle:"Registro de fabricantes, proveedores y equipos observados en la feria.", people:"Abraham Duarte · Vicente Benavides", dates:"20/07 – 23/07 · México" };
+  var entries = [];       // [{id, company, cat, stand, contact, phone, email, web, products, notes, highlight, interest, image}]
+  var editingId = null;
+  var current = 0;
+  var lastMode = "capture";
+
+  var $ = function(s){ return document.querySelector(s); };
+  var esc = function(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); };
+
+  /* ---------------- Agenda: programa de charlas (páginas 4-7 del programa LAC 2026) ---------------- */
+  var AGENDA_RAW = [
+    { day:"Martes 21 de julio", key:"mar21", rooms:[
+      { room:"Sala Paladio", items:[
+        {time:"14:00 - 15:00", title:"Estrategias de reformulación en pinturas arquitectónicas estándar y económicas para eliminar APEO/PFAS", speaker:"Heidi Verónica Salinas Sánchez"},
+        {time:"15:00 - 16:00", title:"Polímeros VINNAPAS® Grado H: claves para la tecnología de morteros secos y revestimientos minerales", speaker:"Héctor Sánchez Rico"},
+        {time:"16:00 - 17:00", title:"Bermocoll EHM MAX: elevando el estándar en pinturas base agua", speaker:"Dra. Juana María Montoya"},
+        {time:"17:00 - 18:00", title:"Pigmentos funcionales", speaker:"Patricia Pérez Masnou"}
+      ]},
+      { room:"Sala Níquel", items:[
+        {time:"14:00 - 15:00", title:"Dispersantes de pigmentos: desde Tinting in Plant hasta sistemas tintométricos", speaker:"Leandro Lemos Alves"},
+        {time:"15:00 - 16:00", title:"Factores y criterios de selección de caolines según el acabado del recubrimiento", speaker:"Valeria Itzel García Salcido"},
+        {time:"16:00 - 17:00", title:"Más desempeño, menor huella: el futuro de los recubrimientos sustentables con dispersiones de BASF", speaker:"Edgar Vargas"},
+        {time:"17:00 - 18:00", title:"El impacto oculto de la dispersión: la ingeniería detrás de recubrimientos de alto valor", speaker:"Mauricio Covarrubias"}
+      ]},
+      { room:"Sala Platino", items:[
+        {time:"13:00 - 14:00", title:"Coating the Future and Navigating Change", speaker:"Daniel S. Murad — President & CEO, Chemquest", tag:"Magistral"},
+        {time:"14:00 - 15:00", title:"La dispersión como clave de la optimización de tus formulaciones", speaker:"Brandon Oliver Peña García"},
+        {time:"15:00 - 16:00", title:"Soluciones en polímeros y aditivos para formulaciones sustentables en pinturas y construcción", speaker:"Maximino Martínez Torres"},
+        {time:"16:00 - 17:00", title:"Fundamentos para el éxito de un sistema tintométrico: de la formulación al punto de venta", speaker:"César Manuel Charles Ortiz"},
+        {time:"17:00 - 18:00", title:"Surfactantes para la polimerización en emulsión", speaker:"Dra. C. Tamara Jurado Vázquez"}
+      ]},
+      { room:"Sala Cobalto", items:[
+        {time:"14:00 - 15:00", title:"ARBOCEL Fiber Gels", speaker:"Sergio Méndez Caviedes"},
+        {time:"15:00 - 16:00", title:"Protección antimicrobiana en pinturas y recubrimientos: de los retos a la tecnología y las aplicaciones", speaker:"Evelyn Füssel"},
+        {time:"16:00 - 17:00", title:"Agentes curantes epóxicos - NextGen Technologies para minimizar la huella ambiental", speaker:"Marcelo Rufo"},
+        {time:"17:00 - 18:00", title:"Polieteramina monofuncional de nueva generación para sistemas en base acuosa", speaker:"Angie Maldonado"}
+      ]}
+    ]},
+    { day:"Miércoles 22 de julio", key:"mie22", rooms:[
+      { room:"Sala Paladio", items:[
+        {time:"12:00 - 13:00", title:"Preservación 360°: innovación, regulación y desempeño en sistemas microbianos para pinturas", speaker:"Mauricio Franzin"},
+        {time:"13:00 - 14:00", title:"Introducción a los OMU: resinas uretánicas de bajo VOC", speaker:"José Víctor Amador Noya"},
+        {time:"14:00 - 15:00", title:"Endurecedores de próxima generación", speaker:"Alejandro Bribiesca"},
+        {time:"15:00 - 16:00", title:"Uso de microesferas poliméricas huecas en recubrimientos arquitectónicos, para aumentar reflectancia solar (Cool Roofs)", speaker:"Luis Javier Cebrián Ramos"},
+        {time:"16:00 - 17:00", title:"¿Cómo mejorar el desempeño de tu pintura usando emulsiones especiales?", speaker:"Ing. Mauro Paderco · Ing. Oliveria Navarro"},
+        {time:"17:00 - 18:00", title:"El riesgo invisible en plantas de pinturas: sanitización como ventaja competitiva", speaker:"Luz Adriana Vega Cabrera"}
+      ]},
+      { room:"Sala Níquel", items:[
+        {time:"12:00 - 13:00", title:"High Performance Conductive Coatings with Specialty Carbon Blacks", speaker:"Carlos Hernández"},
+        {time:"13:00 - 14:00", title:"Soluciones sustentables para recubrimientos industriales de alto desempeño, tecnología CSNL", speaker:"Óscar Rodríguez"},
+        {time:"14:00 - 15:00", title:"Diseño de recubrimientos acrílicos base agua: brillo, formación de película y resistencia a la intemperie", speaker:"Luis Alberto Escobar Saucedo"},
+        {time:"15:00 - 16:00", title:"Digitalización industrial y automatización del envasado en pinturas y recubrimientos", speaker:"Carlos Pacha"},
+        {time:"16:00 - 17:00", title:"Durabilidad desde el diseño: recubrimientos base agua para concreto", speaker:"Juan Daniel Rodríguez Martínez"},
+        {time:"17:00 - 18:00", title:"Hiperdispersante para todas las químicas", speaker:"Pamila Heitkoeter de Melo"}
+      ]},
+      { room:"Sala Platino", items:[
+        {time:"12:00 - 13:00", title:"Soluciones de Dow para pinturas de tráfico de alto desempeño", speaker:"Heidi Verónica Salinas Sánchez"},
+        {time:"13:00 - 14:00", title:"Mujeres que están redefiniendo el liderazgo industrial", speaker:"Deyanira Villafranca S. — Mentora, Programa Mujeres en Pinturas y Tintas · Bienvenida: Blanca Estela Pérez", tag:"Magistral"},
+        {time:"14:00 - 15:00", title:"Tecnología de partículas a partir de sílica sintética: reología, modificación de superficie y durabilidad", speaker:"Francisco Cortés Baledón"},
+        {time:"15:00 - 16:00", title:"Recubrimientos ante un mercado en transformación", speaker:"Modera: Karen Lazcano Botello (CONCAMIN) · Participan: Álvaro Amutio Morett (Kilker), Julio Enciso (PPG Comex), Sebastián Cammaert (COREV México)", tag:"Panel"},
+        {time:"16:00 - 17:00", title:"Opciones de color en camino a la sustentabilidad: NOM-123-SEMARNAT-1998 y NOM-252-SSA1-2011", speaker:"Fabiola Luis López"},
+        {time:"17:00 - 18:00", title:"Amaval® Aditivo Multifuncional", speaker:"Jonathan Lizárraga Loaiza"}
+      ]},
+      { room:"Sala Cobalto", items:[
+        {time:"12:00 - 13:00", title:"Novel Polymer Additive for zero VOC architectural paints with Improved Open Time", speaker:"Zeena Cherian", en:true},
+        {time:"13:00 - 14:00", title:"Beyond Black Beyond Limits – Delivering Performance in Liquid Systems", speaker:"Markus Alexander Mahn", en:true},
+        {time:"14:00 - 15:00", title:"Recubrimientos sostenibles y de alto rendimiento con polioles de policaprolactona Capa", speaker:"Dr. Chuck Jones", en:true},
+        {time:"15:00 - 16:00", title:"Dispersor modular en línea, para dispersiones minerales fáciles y rápidas", speaker:"Jianling Yao", en:true},
+        {time:"16:00 - 17:00", title:"Enhancing Durability and Protection - Superdurable Resins for Powder Coatings", speaker:"Frederick Cummings", en:true},
+        {time:"17:00 - 18:00", title:"Construyendo el futuro de los impermeabilizantes elastoméricos: mercado y abordaje Dow para América Latina", speaker:"Carlos Suárez y Zury Anastacio"}
+      ]}
+    ]},
+    { day:"Jueves 23 de julio", key:"jue23", rooms:[
+      { room:"Sala Paladio", items:[
+        {time:"12:00 - 13:00", title:"Protección contra explosiones: criterios para seleccionar, instalar y mantener equipos eléctricos seguros en áreas peligrosas", speaker:"Wencai Zhong", tag:"Panel"},
+        {time:"13:00 - 14:00", title:"Recubrimientos repelentes al agua basados en resinas versáticas", speaker:"Paola Jazmín Arzate Martínez"},
+        {time:"14:00 - 15:00", title:"Tecnologías de dispersión y molienda NETZSCH", speaker:"Rogelio Camacho Luna"},
+        {time:"15:00 - 16:00", title:"Cómo aprovechar al máximo tu viscosímetro rotacional", speaker:"Delia Ivette Arellano Rosas"},
+        {time:"16:00 - 17:00", title:"Del blah blah blah a la acción... crea tu avatar", speaker:"Cristian Fahren"}
+      ]},
+      { room:"Sala Níquel", items:[
+        {time:"12:00 - 13:00", title:"Retos y oportunidades al fabricar pintura mediante slurries", speaker:"Javier Rodríguez"},
+        {time:"13:00 - 14:00", title:"Dispersantes poliméricos y emulsionantes NPEO-free para formulaciones preparadas para el futuro", speaker:"Alexandre Decimoni"},
+        {time:"14:00 - 15:00", title:"Más allá de la estabilidad en concentrados de pigmento", speaker:"Salvador Acosta Rodríguez"},
+        {time:"15:00 - 16:00", title:"Soluciones sustentables para pinturas base agua: reología natural y coalescencia No-VOC", speaker:"Adrián Vega"},
+        {time:"16:00 - 17:00", title:"Emulsiones nanométricas", speaker:"Carlos Manuel Ibarrarán Díaz"}
+      ]},
+      { room:"Sala Platino", items:[
+        {time:"12:00 - 13:00", title:"IA y automatización en la transformación de la industria manufacturera", speaker:"Modera: Mariana Alva Cal y Mayor (CONCAMIN) · Participan: Luzselene Rincón (PPG Comex), Luis de los Santos (Sudarshan), Lorena Uribe (Sherwin Williams), Félix Romano (CONCAMIN/Diltex), Alejandro Preinfalk (Siemens México)", tag:"Panel"},
+        {time:"13:00 - 14:00", title:"Alto desempeño con menor huella de carbono: el futuro sustentable de los pigmentos", speaker:"Tânia Regina Moreno"},
+        {time:"14:00 - 15:00", title:"Sistemas avanzados de silanos para protección de techos por membrana e impermeabilizante", speaker:"Rosemeire Ciro"},
+        {time:"15:00 - 16:00", title:"Repensando el desempeño en recubrimientos: la nueva generación de aditivos multifuncionales", speaker:"Edivaldo Bibiano de Borba"},
+        {time:"16:00 - 17:00", title:"Cargas funcionales de alto desempeño, incluyendo un pigmento anticorrosivo de silicato de magnesio de extrema pureza", speaker:"Jorge Arturo Alcalá Hermosillo"}
+      ]},
+      { room:"Sala Cobalto", items:[
+        {time:"12:00 - 13:00", title:"La NOM-003 ya viene: reformular sin plomo es más fácil (y barato) de lo que crees", speaker:"Paul Cevallos"},
+        {time:"13:00 - 14:00", title:"Clariant's Innovative Additive Solutions: PTFE-Free Technologies, Light Stabilizers, and Bio-Based Materials", speaker:"Mariano Suárez", en:true},
+        {time:"14:00 - 15:00", title:"Barita y talco: minerales naturales como cargas funcionales de alta performance", speaker:"Pablo Seijo Iramain"},
+        {time:"15:00 - 16:00", title:"Perfilado térmico: la clave para la calidad en tu proceso de recubrimiento", speaker:"Leo López Antonel"}
+      ]}
+    ]}
+  ];
+  var SESSIONS = [];
+  AGENDA_RAW.forEach(function(d){
+    d.rooms.forEach(function(r, ri){
+      r.items.forEach(function(it, ii){
+        SESSIONS.push({ id: d.key+"_"+ri+"_"+ii, dayLabel:d.day, dayKey:d.key, room:r.room, time:it.title? it.time: it.time, title:it.title, speaker:it.speaker, tag:it.tag||"", en:!!it.en });
+      });
+    });
+  });
+  var agendaState = {}; // { id: {done:bool, who:"Abraham"|"Vicente"|"Ambos"|""} }
+
+  /* ---------------- Carga ---------------- */
+  async function load(){
+    try{
+      var m = await Store.get(K_META);
+      if(m){ meta = Object.assign(meta, JSON.parse(m)); }
+    }catch(e){}
+    var ids = [];
+    try{ var idx = await Store.get(K_INDEX); if(idx){ ids = JSON.parse(idx) || []; } }catch(e){}
+    entries = [];
+    for(var i=0;i<ids.length;i++){
+      try{ var raw = await Store.get(K_ENTRY(ids[i])); if(raw){ entries.push(JSON.parse(raw)); } }catch(e){}
+    }
+    renderList();
+  }
+  async function loadAgenda(){
+    try{ var raw = await Store.get(K_AGENDA); agendaState = raw ? JSON.parse(raw) : {}; }catch(e){ agendaState = {}; }
+  }
+
+  async function persistIndex(){
+    await Store.set(K_INDEX, JSON.stringify(entries.map(function(e){return e.id;})));
+  }
+  async function persistEntry(e){ await Store.set(K_ENTRY(e.id), JSON.stringify(e)); }
+  async function persistMeta(){ await Store.set(K_META, JSON.stringify(meta)); }
+  async function persistAgenda(){ await Store.set(K_AGENDA, JSON.stringify(agendaState)); }
+
+  /* ---------------- Imagen: comprimir ---------------- */
+  function compress(file, maxDim, quality){
+    return new Promise(function(resolve,reject){
+      var img = new Image();
+      var url = URL.createObjectURL(file);
+      img.onload = function(){
+        var w = img.width, h = img.height;
+        if(w>h && w>maxDim){ h = Math.round(h*maxDim/w); w = maxDim; }
+        else if(h>=w && h>maxDim){ w = Math.round(w*maxDim/h); h = maxDim; }
+        var c = document.createElement("canvas"); c.width=w; c.height=h;
+        c.getContext("2d").drawImage(img,0,0,w,h);
+        URL.revokeObjectURL(url);
+        try{ resolve(c.toDataURL("image/jpeg", quality)); }catch(e){ reject(e); }
+      };
+      img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error("img")); };
+      img.src = url;
+    });
+  }
+
+  /* ---------------- Toast ---------------- */
+  var toastT;
+  function toast(msg){
+    var t = $("#toast"); t.textContent = msg; t.classList.add("on");
+    clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove("on"); }, 1900);
+  }
+
+  /* ---------------- Formulario ---------------- */
+  var pendingImage = null; // dataURL nuevo elegido en el form
+
+  function readInterest(){
+    var on = document.querySelector("#interest .chip.on");
+    return on ? on.getAttribute("data-v") : "Alto";
+  }
+  function setInterest(v){
+    document.querySelectorAll("#interest .chip").forEach(function(c){
+      c.classList.toggle("on", c.getAttribute("data-v")===v);
+    });
+  }
+
+  function fillForm(e){
+    $("#f_id").value = e ? e.id : "";
+    $("#f_company").value = e ? e.company||"" : "";
+    $("#f_cat").value = e ? (e.cat||"Materia prima") : "Materia prima";
+    $("#f_stand").value = e ? e.stand||"" : "";
+    $("#f_contact").value = e ? e.contact||"" : "";
+    $("#f_phone").value = e ? e.phone||"" : "";
+    $("#f_email").value = e ? e.email||"" : "";
+    $("#f_web").value = e ? e.web||"" : "";
+    $("#f_products").value = e ? e.products||"" : "";
+    $("#f_notes").value = e ? e.notes||"" : "";
+    $("#f_highlight").value = e ? e.highlight||"" : "";
+    setInterest(e ? (e.interest||"Alto") : "Alto");
+    pendingImage = e ? (e.image||null) : null;
+    updateThumb(pendingImage);
+    var editing = !!(e && e.id);
+    editingId = editing ? e.id : null;
+    $("#formTitle").textContent = editing ? "Editar proveedor" : "Nuevo proveedor";
+    $("#formPill").textContent = editing ? "Editando" : "Agregar";
+    $("#btnSave").textContent = editing ? "Guardar cambios" : "Agregar proveedor";
+    $("#btnReset").style.display = editing ? "" : "none";
+  }
+  function updateThumb(dataUrl){
+    var t = $("#f_thumb");
+    if(dataUrl){ t.src = dataUrl; t.classList.remove("empty"); }
+    else{ t.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%235A6B82' stroke-width='2'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Ccircle cx='9' cy='9' r='2'/%3E%3Cpath d='m21 15-3.6-3.6a2 2 0 0 0-2.8 0L6 20'/%3E%3C/svg%3E"; t.classList.add("empty"); }
+  }
+
+  async function save(){
+    var company = $("#f_company").value.trim();
+    if(!company){ toast("Falta el nombre de la empresa"); $("#f_company").focus(); return; }
+    var e = {
+      id: editingId || (Date.now().toString(36) + Math.random().toString(36).slice(2,6)),
+      company: company,
+      cat: $("#f_cat").value,
+      stand: $("#f_stand").value.trim(),
+      contact: $("#f_contact").value.trim(),
+      phone: $("#f_phone").value.trim(),
+      email: $("#f_email").value.trim(),
+      web: $("#f_web").value.trim(),
+      products: $("#f_products").value.trim(),
+      notes: $("#f_notes").value.trim(),
+      highlight: $("#f_highlight").value.trim(),
+      interest: readInterest(),
+      image: pendingImage || null
+    };
+    if(editingId){
+      var i = entries.findIndex(function(x){ return x.id===editingId; });
+      if(i>=0) entries[i] = e; else entries.push(e);
+    }else{
+      entries.push(e);
+    }
+    await persistEntry(e);
+    await persistIndex();
+    markLocalWrite();
+    remoteUpsertEntry(e, entries.indexOf(e));
+    fillForm(null);
+    renderList();
+    toast(editingId===null ? "Proveedor agregado" : "Cambios guardados");
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+
+  /* ---------------- Lista de proveedores ---------------- */
+  function renderList(){
+    var host = $("#list");
+    $("#listCount").textContent = entries.length;
+    if(!entries.length){
+      host.innerHTML = '<div class="empty"><b>Aún no hay proveedores</b>Completa el formulario y toca "Agregar proveedor". Cada uno se convierte en una lámina de la presentación.</div>';
+      return;
+    }
+    var rows = '<div class="rows">';
+    entries.forEach(function(e, i){
+      var thumb = e.image
+        ? '<img class="rthumb" src="'+e.image+'" alt="">'
+        : '<div class="rthumb empty">'+esc((e.company||"?").trim().charAt(0).toUpperCase())+'</div>';
+      rows += '<div class="row">'
+        + thumb
+        + '<div class="rmain"><b>'+esc(e.company)+(e.highlight?' <span class="star" title="Tiene dato destacado">★</span>':'')+'</b>'
+        + '<small><span class="idot '+esc(e.interest||"Alto")+'"></span><span class="cat">'+esc(e.cat||"")+'</span>'
+        + (e.stand? ' · '+esc(e.stand):'') + '</small></div>'
+        + '<div class="racts">'
+        + '<button class="iconbtn" data-act="up" data-i="'+i+'" '+(i===0?"disabled":"")+' title="Subir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg></button>'
+        + '<button class="iconbtn" data-act="down" data-i="'+i+'" '+(i===entries.length-1?"disabled":"")+' title="Bajar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>'
+        + '<button class="iconbtn" data-act="edit" data-id="'+e.id+'" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>'
+        + '<button class="iconbtn danger" data-act="del" data-id="'+e.id+'" title="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button>'
+        + '</div></div>';
+    });
+    rows += '</div>';
+    host.innerHTML = rows;
+  }
+
+  $("#list").addEventListener("click", async function(ev){
+    var btn = ev.target.closest("button[data-act]"); if(!btn) return;
+    var act = btn.getAttribute("data-act");
+    if(act==="edit"){
+      var e = entries.find(function(x){return x.id===btn.getAttribute("data-id");});
+      if(e){ fillForm(e); window.scrollTo({top:0,behavior:"smooth"}); }
+    }else if(act==="del"){
+      var id = btn.getAttribute("data-id");
+      var e2 = entries.find(function(x){return x.id===id;});
+      if(confirm("¿Eliminar \""+(e2?e2.company:"")+"\"?")){
+        entries = entries.filter(function(x){return x.id!==id;});
+        await Store.del(K_ENTRY(id));
+        await persistIndex();
+        markLocalWrite();
+        remoteDeleteEntry(id);
+        if(editingId===id) fillForm(null);
+        renderList(); toast("Eliminado");
+      }
+    }else if(act==="up" || act==="down"){
+      var i = parseInt(btn.getAttribute("data-i"),10);
+      var j = act==="up" ? i-1 : i+1;
+      if(j<0 || j>=entries.length) return;
+      var tmp = entries[i]; entries[i]=entries[j]; entries[j]=tmp;
+      await persistIndex();
+      markLocalWrite();
+      remoteReorder(entries.map(function(x){return x.id;}));
+      renderList();
+    }
+  });
+
+  /* ---------------- Agenda: render + interacción ---------------- */
+  function renderAgenda(){
+    var html = "";
+    AGENDA_RAW.forEach(function(d){
+      var daySessions = SESSIONS.filter(function(s){return s.dayKey===d.key;});
+      var doneCount = daySessions.filter(function(s){ var st=agendaState[s.id]; return st&&st.done; }).length;
+      html += '<div class="agenda-day" data-daykey="'+d.key+'">';
+      html += '<div class="listhead" style="margin-top:22px"><h3>'+esc(d.day)+'</h3><span class="count daycount">'+doneCount+' / '+daySessions.length+'</span></div>';
+      d.rooms.forEach(function(r, ri){
+        html += '<div class="agenda-room"><h4>'+esc(r.room)+'<span class="line"></span></h4>';
+        r.items.forEach(function(it, ii){
+          var id = d.key+"_"+ri+"_"+ii;
+          var st = agendaState[id] || {done:false, who:""};
+          var tags = "";
+          if(it.tag) tags += '<span class="sesstag">'+esc(it.tag)+'</span>';
+          if(it.en) tags += '<span class="sesstag">Inglés</span>';
+          html += '<div class="sessrow'+(st.done?' done':'')+'" data-id="'+id+'">'
+            + '<button class="sesscheck'+(st.done?' on':'')+'" data-act="toggle" data-id="'+id+'" title="Marcar como asistido"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg></button>'
+            + '<div class="sessmain">'
+            +   '<span class="sesstime">'+esc(it.time)+'</span>'+(tags?'<span class="sesstags">'+tags+'</span>':'')
+            +   '<div class="sesstitle">'+esc(it.title)+'</div>'
+            +   '<div class="sessspeaker">'+esc(it.speaker)+'</div>'
+            +   '<div class="assign">'
+            +     ['Abraham','Vicente','Ambos'].map(function(w){ return '<span class="achip'+(st.who===w?' on':'')+'" data-act="assign" data-id="'+id+'" data-who="'+w+'">'+w+'</span>'; }).join("")
+            +   '</div>'
+            + '</div></div>';
+        });
+        html += '</div>';
+      });
+      html += '</div>';
+    });
+    $("#agendaList").innerHTML = html;
+    updateAgendaProgress();
+  }
+
+  function updateAgendaProgress(){
+    var total = SESSIONS.length, done = 0;
+    Object.keys(agendaState).forEach(function(id){ if(agendaState[id] && agendaState[id].done) done++; });
+    $("#agendaProgress").textContent = "Sesiones cubiertas: "+done+" / "+total;
+    document.querySelectorAll(".agenda-day").forEach(function(dayEl){
+      var key = dayEl.getAttribute("data-daykey");
+      var daySessions = SESSIONS.filter(function(s){return s.dayKey===key;});
+      var dcount = daySessions.filter(function(s){ var st=agendaState[s.id]; return st&&st.done; }).length;
+      var el = dayEl.querySelector(".daycount");
+      if(el) el.textContent = dcount+" / "+daySessions.length;
+    });
+  }
+
+  $("#agendaList").addEventListener("click", async function(ev){
+    var t = ev.target.closest("[data-act]"); if(!t) return;
+    var act = t.getAttribute("data-act");
+    var id = t.getAttribute("data-id");
+    agendaState[id] = agendaState[id] || {done:false, who:""};
+    if(act==="toggle"){
+      agendaState[id].done = !agendaState[id].done;
+      t.classList.toggle("on", agendaState[id].done);
+      var row = t.closest(".sessrow"); if(row) row.classList.toggle("done", agendaState[id].done);
+    }else if(act==="assign"){
+      var who = t.getAttribute("data-who");
+      agendaState[id].who = (agendaState[id].who===who) ? "" : who;
+      var group = t.parentElement;
+      Array.prototype.forEach.call(group.children, function(c){ c.classList.toggle("on", c.getAttribute("data-who")===agendaState[id].who); });
+    }
+    await persistAgenda();
+    markLocalWrite();
+    remoteSetAgenda(id, agendaState[id].done, agendaState[id].who);
+    updateAgendaProgress();
+  });
+
+  /* ---------------- Presentación ---------------- */
+  function catLabel(c){ return (c||"Proveedor").toUpperCase(); }
+
+  function slideEntry(e, i, total){
+    var num = String(i+1).padStart(2,"0") + " / " + String(total).padStart(2,"0");
+    var html = '<div class="slide"><div class="s-inner entry-slide">';
+    html += '<div class="eyebrow">'+esc(catLabel(e.cat))
+          + '<span class="num">'+num+'</span>'
+          + '<span class="badge"><span class="idot '+esc(e.interest||"Alto")+'"></span>Interés '+esc(e.interest||"Alto").toLowerCase()+'</span></div>';
+    html += '<h2>'+esc(e.company)+'</h2><div class="erule"></div>';
+    if(e.highlight){ html += '<div class="callout"><b>★ '+esc(e.highlight)+'</b></div>'; }
+    if(e.image){ html += '<img class="ephoto" src="'+e.image+'" alt="">'; }
+
+    var specs = [];
+    if(e.contact) specs.push({l:"Contacto", v:esc(e.contact)});
+    if(e.stand)   specs.push({l:"Ubicación", v:esc(e.stand)});
+    if(e.phone)   specs.push({l:"Teléfono", v:'<a href="tel:'+esc(e.phone.replace(/\s/g,''))+'">'+esc(e.phone)+'</a>', mono:true});
+    if(e.email)   specs.push({l:"Email", v:'<a href="mailto:'+esc(e.email)+'">'+esc(e.email)+'</a>', mono:true});
+    if(e.web)     specs.push({l:"Sitio web", v:'<a href="'+esc(/^https?:/.test(e.web)?e.web:"https://"+e.web)+'" target="_blank" rel="noopener">'+esc(e.web)+'</a>', mono:true, full:(specs.length%2===0)});
+    if(specs.length){
+      html += '<div class="specs">';
+      specs.forEach(function(s){
+        html += '<div class="spec'+(s.full?' full':'')+'"><label>'+s.l+'</label><div class="val'+(s.mono?' mono':'')+'">'+s.v+'</div></div>';
+      });
+      html += '</div>';
+    }
+    if(e.products){ html += '<div class="block"><label>Productos / qué ofrecen</label><p>'+esc(e.products)+'</p></div>'; }
+    if(e.notes){ html += '<div class="block"><label>Observaciones</label><p>'+esc(e.notes)+'</p></div>'; }
+    html += '</div></div>';
+    return html;
+  }
+
+  function buildCoverageSlide(){
+    var done = SESSIONS.filter(function(s){ var st = agendaState[s.id]; return st && st.done; });
+    if(!done.length) return "";
+    var totalByDay = {}, doneByDay = {};
+    SESSIONS.forEach(function(s){ totalByDay[s.dayLabel] = (totalByDay[s.dayLabel]||0)+1; });
+    done.forEach(function(s){ doneByDay[s.dayLabel] = (doneByDay[s.dayLabel]||0)+1; });
+    var cards = "";
+    AGENDA_RAW.forEach(function(d){
+      cards += '<div class="cov-card"><label>'+esc(d.day)+'</label><b>'+(doneByDay[d.day]||0)+'<span style="font-size:15px;color:var(--muted);font-weight:600"> / '+totalByDay[d.day]+'</span></b></div>';
+    });
+    var sorted = done.slice().sort(function(a,b){ return (a.dayKey+a.time).localeCompare(b.dayKey+b.time); });
+    var list = sorted.map(function(s){
+      var st = agendaState[s.id];
+      return '<div class="cov-item"><span class="t">'+esc(s.time)+'</span><span class="ti">'+esc(s.title)+'</span>'+(st.who?'<span class="who">'+esc(st.who)+'</span>':'')+'</div>';
+    }).join("");
+    return '<div class="slide"><div class="s-inner entry-slide"><div class="eyebrow">Cobertura del evento<span class="num">'+done.length+' / '+SESSIONS.length+' sesiones</span></div>'
+      + '<h2>Charlas y paneles cubiertos</h2><div class="erule"></div>'
+      + '<div class="cov-grid">'+cards+'</div>'
+      + '<div class="cov-list">'+list+'</div>'
+      + '</div></div>';
+  }
+
+  function buildDeck(){
+    var track = $("#track");
+    var title = '<div class="slide"><div class="s-inner title-slide">'
+      + '<div class="kicker">Feria internacional · México</div>'
+      + '<h1>'+esc(meta.title).replace(/2026/,'<em>2026</em>')+'</h1>'
+      + '<div class="rule"></div>'
+      + '<p class="lead">'+esc(meta.subtitle)+'</p>'
+      + '<div class="facts">'
+      +   '<div class="fact"><label>Asistentes</label><b class="who">'+esc(meta.people)+'</b></div>'
+      +   '<div class="fact"><label>Fechas</label><b>'+esc(meta.dates)+'</b></div>'
+      +   '<div class="fact"><label>Proveedores registrados</label><b>'+entries.length+'</b></div>'
+      + '</div></div></div>';
+
+    var coverage = buildCoverageSlide();
+
+    var body = "";
+    if(entries.length){
+      entries.forEach(function(e,i){ body += slideEntry(e,i,entries.length); });
+    }else{
+      body = '<div class="slide"><div class="s-inner"><div class="deck-empty"><b>Sin proveedores todavía</b>Vuelve a "Capturar" para agregar el primero.</div></div></div>';
+    }
+    track.innerHTML = title + coverage + body;
+  }
+
+  function slideCount(){ return $("#track").children.length; }
+
+  function goTo(i, animate){
+    var n = slideCount();
+    current = Math.max(0, Math.min(i, n-1));
+    var track = $("#track");
+    if(animate===false){ track.style.transition="none"; }
+    track.style.transform = "translateX(-"+(current*100)+"%)";
+    if(animate===false){ track.offsetHeight; track.style.transition=""; }
+    var slides = track.children;
+    for(var k=0;k<slides.length;k++){ slides[k].scrollTop = 0; }
+    $("#dCount").textContent = String(current+1).padStart(2,"0")+" / "+String(n).padStart(2,"0");
+    $("#navPrev").disabled = current===0;
+    $("#navNext").disabled = current===n-1;
+    $("#progressBar").style.width = (n<=1?100:(current/(n-1))*100)+"%";
+  }
+  function next(){ goTo(current+1); }
+  function prev(){ goTo(current-1); }
+
+  function openDeck(){
+    buildDeck();
+    $("#deck").classList.add("on");
+    document.body.style.overflow="hidden";
+    goTo(0, false);
+  }
+  function closeDeck(){
+    $("#deck").classList.remove("on");
+    document.body.style.overflow="";
+    setMode(lastMode, true);
+  }
+
+  /* nav bindings */
+  $("#navNext").addEventListener("click", next);
+  $("#navPrev").addEventListener("click", prev);
+  $("#tapRight").addEventListener("click", next);
+  $("#tapLeft").addEventListener("click", prev);
+  $("#dExit").addEventListener("click", closeDeck);
+  document.addEventListener("keydown", function(ev){
+    if(!$("#deck").classList.contains("on")) return;
+    if(ev.key==="ArrowRight"||ev.key===" "){ next(); ev.preventDefault(); }
+    else if(ev.key==="ArrowLeft"){ prev(); }
+    else if(ev.key==="Home"){ goTo(0); }
+    else if(ev.key==="End"){ goTo(slideCount()-1); }
+    else if(ev.key==="Escape"){ closeDeck(); }
+  });
+  /* swipe */
+  var tx0=null, ty0=null;
+  var vp = $(".viewport");
+  vp.addEventListener("touchstart", function(ev){ var t=ev.changedTouches[0]; tx0=t.clientX; ty0=t.clientY; }, {passive:true});
+  vp.addEventListener("touchend", function(ev){
+    if(tx0===null) return;
+    var t=ev.changedTouches[0]; var dx=t.clientX-tx0, dy=t.clientY-ty0;
+    if(Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)*1.4){ if(dx<0) next(); else prev(); }
+    tx0=ty0=null;
+  }, {passive:true});
+
+  /* ---------------- Modo (segmented) ---------------- */
+  function setMode(mode, silent){
+    document.querySelectorAll("#seg button").forEach(function(b){
+      b.classList.toggle("on", b.getAttribute("data-mode")===mode);
+    });
+    if(mode!=="present"){ lastMode = mode; }
+    $("#captureView").style.display = mode==="capture" ? "" : "none";
+    $("#agendaView").style.display = mode==="agenda" ? "" : "none";
+    if(mode==="present"){
+      if(!silent){ openDeck(); }
+    }else{
+      if(!silent){ closeDeck(); }
+    }
+  }
+  document.querySelectorAll("#seg button").forEach(function(b){
+    b.addEventListener("click", function(){ setMode(b.getAttribute("data-mode")); });
+  });
+
+  /* ---------------- Portada editable ---------------- */
+  $("#btnCover").addEventListener("click", async function(){
+    var title = prompt("Título de la presentación:", meta.title); if(title===null) return;
+    var subtitle = prompt("Bajada / descripción:", meta.subtitle); if(subtitle===null) return;
+    var people = prompt("Asistentes:", meta.people); if(people===null) return;
+    var dates = prompt("Fechas / lugar:", meta.dates); if(dates===null) return;
+    meta.title=title.trim()||meta.title; meta.subtitle=subtitle.trim();
+    meta.people=people.trim(); meta.dates=dates.trim();
+    await persistMeta();
+    markLocalWrite();
+    remoteSetMeta(meta);
+    toast("Portada actualizada");
+  });
+
+  /* ---------------- Import / Export ---------------- */
+  $("#btnExport").addEventListener("click", function(){
+    var data = { app:"LAC2026", version:2, meta:meta, entries:entries, agenda:agendaState };
+    var blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "LAC2026.json";
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+    toast("Respaldo descargado");
+  });
+  $("#fileImport").addEventListener("change", function(ev){
+    var file = ev.target.files && ev.target.files[0]; if(!file) return;
+    var r = new FileReader();
+    r.onload = async function(){
+      try{
+        var data = JSON.parse(r.result);
+        if(!data || !Array.isArray(data.entries)) throw new Error("formato");
+        if(data.meta) meta = Object.assign(meta, data.meta);
+        for(var i=0;i<entries.length;i++){ await Store.del(K_ENTRY(entries[i].id)); }
+        entries = data.entries.map(function(e){ if(!e.id) e.id=Date.now().toString(36)+Math.random().toString(36).slice(2,6); return e; });
+        for(var j=0;j<entries.length;j++){ await persistEntry(entries[j]); }
+        await persistIndex(); await persistMeta();
+        if(data.agenda){ agendaState = data.agenda; await persistAgenda(); renderAgenda(); }
+        renderList(); toast("Importado: "+entries.length+" proveedores");
+      }catch(e){ toast("Archivo no válido"); }
+      ev.target.value="";
+    };
+    r.readAsText(file);
+  });
+
+  /* ---------------- Imprimir / PDF ---------------- */
+  $("#btnPrint").addEventListener("click", function(){
+    buildDeck();
+    $("#deck").classList.add("on");
+    setTimeout(function(){ window.print(); }, 120);
+    var after = function(){ $("#deck").classList.remove("on"); window.removeEventListener("afterprint", after); };
+    window.addEventListener("afterprint", after);
+  });
+
+  /* ---------------- Form buttons ---------------- */
+  $("#btnSave").addEventListener("click", save);
+  $("#btnReset").addEventListener("click", function(){ fillForm(null); });
+  document.querySelectorAll("#interest .chip").forEach(function(c){
+    c.addEventListener("click", function(){ setInterest(c.getAttribute("data-v")); });
+  });
+  $("#f_image").addEventListener("change", async function(ev){
+    var file = ev.target.files && ev.target.files[0]; if(!file) return;
+    try{
+      var dataUrl = await compress(file, 1200, 0.72);
+      pendingImage = dataUrl; updateThumb(dataUrl); toast("Foto lista");
+    }catch(e){ toast("No se pudo procesar la imagen"); }
+    ev.target.value="";
+  });
+  $("#f_company").addEventListener("keydown", function(ev){ if(ev.key==="Enter"){ ev.preventDefault(); save(); } });
+  $("#btnSync").addEventListener("click", function(){ refreshFromServer(false); });
+
+  /* ---------------- Init ---------------- */
+  fillForm(null);
+  (async function init(){
+    await load();
+    await loadAgenda();
+    renderAgenda();
+    if(CONFIG.API_URL){
+      $("#btnSync").style.display = "";
+      await refreshFromServer(true);
+      setInterval(function(){
+        if(document.visibilityState==="visible" && (Date.now()-lastLocalWriteAt)>4000){
+          refreshFromServer(true);
+        }
+      }, 25000);
+    }
+  })();
+})();
+</script>
+</body>
+</html>
