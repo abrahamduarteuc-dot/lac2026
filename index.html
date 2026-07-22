@@ -117,14 +117,15 @@
   .chip[data-v=Bajo] .dot{background:var(--low)}
   .chip.on{border-color:var(--blue);color:var(--ink);background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--blue)}
 
-  .imgpick{
-    grid-column:1/-1;display:flex;align-items:center;gap:14px;
-    border:1px dashed var(--border);border-radius:var(--radius-sm);padding:12px;background:var(--surface-2);
-  }
-  .imgpick .thumb{width:64px;height:64px;border-radius:10px;object-fit:cover;background:var(--surface);border:1px solid var(--border);flex:none}
-  .imgpick .thumb.empty{display:flex;align-items:center;justify-content:center;color:var(--muted)}
-  .imgpick .meta{flex:1;min-width:0}
-  .imgpick .meta small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+  .photopicker{grid-column:1/-1;display:flex;gap:12px;flex-wrap:wrap}
+  .photo-slot{position:relative;width:88px;height:88px;border-radius:12px;flex:none;overflow:hidden;border:1px solid var(--border);background:var(--surface)}
+  .photo-slot img{width:100%;height:100%;object-fit:cover;display:block}
+  .photo-slot .rm{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(15,37,64,.72);color:#fff;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .photo-slot.add{border:1.5px dashed var(--border);background:var(--surface-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--muted);cursor:pointer;transition:.15s}
+  .photo-slot.add:hover{border-color:var(--blue);color:var(--blue)}
+  .photo-slot.add svg{width:20px;height:20px}
+  .photo-slot.add span{font-size:10.5px;font-weight:700}
+  .photohint{grid-column:1/-1;color:var(--muted);font-size:12px;margin-top:-4px}
   .filebtn{position:relative;overflow:hidden}
   .filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 
@@ -278,7 +279,8 @@
   .entry-slide .eyebrow .badge{margin-left:auto;display:inline-flex;align-items:center;gap:7px;color:var(--ink);background:var(--surface);border:1px solid var(--border);padding:6px 12px;border-radius:999px;letter-spacing:.06em}
   .entry-slide h2{font-size:clamp(30px,6.5vw,52px);line-height:1.02;letter-spacing:-.03em;margin:16px 0 0}
   .entry-slide .erule{height:3px;width:60px;background:var(--blue);margin:20px 0 24px;border-radius:2px}
-  .ephoto{width:100%;max-height:280px;object-fit:cover;border-radius:14px;border:1px solid var(--border);margin-bottom:24px;background:var(--surface)}
+  .ephoto-grid{display:grid;gap:10px;margin-bottom:24px}
+  .ephoto-grid img{width:100%;height:240px;object-fit:cover;border-radius:14px;border:1px solid var(--border);background:var(--surface)}
   .callout{background:var(--surface);border-left:4px solid var(--blue);border-radius:10px;padding:14px 16px;margin-bottom:22px}
   .callout b{font-size:16px;font-weight:700;line-height:1.42;color:var(--ink)}
   .specs{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border-2);border:1px solid var(--border-2);border-radius:14px;overflow:hidden;margin-bottom:22px}
@@ -431,13 +433,11 @@
               <div class="chip" data-v="Bajo"><span class="dot"></span>Bajo</div>
             </div>
           </div>
-          <div class="imgpick">
-            <img class="thumb empty" id="f_thumb" alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%235A6B82' stroke-width='2'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Ccircle cx='9' cy='9' r='2'/%3E%3Cpath d='m21 15-3.6-3.6a2 2 0 0 0-2.8 0L6 20'/%3E%3C/svg%3E">
-            <div class="meta">
-              <b style="font-size:14px">Foto del stand / producto</b>
-              <small>Se comprime sola. Puedes usar la cámara o la galería.</small>
-            </div>
-            <button class="ghost filebtn" type="button">Elegir<input type="file" id="f_image" accept="image/*"></button>
+          <div class="field full">
+            <label>Fotos del stand / producto (hasta 3)</label>
+            <div class="photopicker" id="photopicker"></div>
+            <div class="photohint">Se comprimen solas. Puedes tomar varias fotos con la cámara o elegir de la galería.</div>
+            <input type="file" id="f_image" accept="image/*" multiple style="display:none">
           </div>
         </div>
         <div class="form-actions">
@@ -523,11 +523,14 @@
 
   function normalizeEntry(e){
     var out = {};
-    ["id","company","cat","stand","contact","phone","email","web","products","notes","highlight","interest","image"].forEach(function(k){
+    ["id","company","cat","stand","contact","phone","email","web","products","notes","highlight","interest"].forEach(function(k){
       out[k] = (e[k]===undefined || e[k]===null) ? "" : String(e[k]);
     });
+    var raw = (e.image===undefined || e.image===null) ? "" : String(e.image);
+    out.images = raw ? raw.split("|").map(function(s){return s.trim();}).filter(function(s){return s.length>0;}) : [];
     return out;
   }
+  function wireImage(images){ return (images||[]).join("|"); }
 
   async function remotePost(payload){
     if(!CONFIG.API_URL) return;
@@ -539,7 +542,11 @@
       });
     }catch(e){ /* sin conexión: el cambio ya quedó guardado localmente */ }
   }
-  function remoteUpsertEntry(entry, order){ return remotePost({action:"upsertEntry", entry:entry, order:order}); }
+  function remoteUpsertEntry(entry, order){
+    var wire = Object.assign({}, entry, { image: wireImage(entry.images) });
+    delete wire.images;
+    return remotePost({action:"upsertEntry", entry:wire, order:order});
+  }
   function remoteDeleteEntry(id){ return remotePost({action:"deleteEntry", id:id}); }
   function remoteReorder(ids){ return remotePost({action:"reorder", ids:ids}); }
   function remoteSetAgenda(id, done, who){ return remotePost({action:"setAgenda", id:id, done:done, who:who}); }
@@ -736,7 +743,8 @@
   }
 
   /* ---------------- Formulario ---------------- */
-  var pendingImage = null; // dataURL nuevo elegido en el form
+  var pendingImages = []; // dataURLs / URLs de este proveedor en el form
+  var MAX_IMAGES = 3;
 
   function readInterest(){
     var on = document.querySelector("#interest .chip.on");
@@ -761,8 +769,8 @@
     $("#f_notes").value = e ? e.notes||"" : "";
     $("#f_highlight").value = e ? e.highlight||"" : "";
     setInterest(e ? (e.interest||"Alto") : "Alto");
-    pendingImage = e ? (e.image||null) : null;
-    updateThumb(pendingImage);
+    pendingImages = e ? (e.images && e.images.length ? e.images.slice() : (e.image ? [e.image] : [])) : [];
+    renderImagePicker();
     var editing = !!(e && e.id);
     editingId = editing ? e.id : null;
     $("#formTitle").textContent = editing ? "Editar proveedor" : "Nuevo proveedor";
@@ -770,10 +778,17 @@
     $("#btnSave").textContent = editing ? "Guardar cambios" : "Agregar proveedor";
     $("#btnReset").style.display = editing ? "" : "none";
   }
-  function updateThumb(dataUrl){
-    var t = $("#f_thumb");
-    if(dataUrl){ t.src = dataUrl; t.classList.remove("empty"); }
-    else{ t.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%235A6B82' stroke-width='2'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Ccircle cx='9' cy='9' r='2'/%3E%3Cpath d='m21 15-3.6-3.6a2 2 0 0 0-2.8 0L6 20'/%3E%3C/svg%3E"; t.classList.add("empty"); }
+
+  function renderImagePicker(){
+    var host = $("#photopicker");
+    var html = "";
+    pendingImages.forEach(function(src, i){
+      html += '<div class="photo-slot"><img src="'+src+'" alt=""><button type="button" class="rm" data-i="'+i+'" title="Quitar">✕</button></div>';
+    });
+    if(pendingImages.length < MAX_IMAGES){
+      html += '<div class="photo-slot add" id="photoAddTile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg><span>Agregar</span></div>';
+    }
+    host.innerHTML = html;
   }
 
   async function save(){
@@ -792,7 +807,7 @@
       notes: $("#f_notes").value.trim(),
       highlight: $("#f_highlight").value.trim(),
       interest: readInterest(),
-      image: pendingImage || null
+      images: pendingImages.slice()
     };
     if(editingId){
       var i = entries.findIndex(function(x){ return x.id===editingId; });
@@ -820,12 +835,13 @@
     }
     var rows = '<div class="rows">';
     entries.forEach(function(e, i){
-      var thumb = e.image
-        ? '<img class="rthumb" src="'+e.image+'" alt="">'
+      var imgs = e.images && e.images.length ? e.images : (e.image ? [e.image] : []);
+      var thumb = imgs.length
+        ? '<img class="rthumb" src="'+imgs[0]+'" alt="">'
         : '<div class="rthumb empty">'+esc((e.company||"?").trim().charAt(0).toUpperCase())+'</div>';
       rows += '<div class="row">'
         + thumb
-        + '<div class="rmain"><b>'+esc(e.company)+(e.highlight?' <span class="star" title="Tiene dato destacado">★</span>':'')+'</b>'
+        + '<div class="rmain"><b>'+esc(e.company)+(e.highlight?' <span class="star" title="Tiene dato destacado">★</span>':'')+(imgs.length>1?' <span class="star" title="'+imgs.length+' fotos">📷'+imgs.length+'</span>':'')+'</b>'
         + '<small><span class="idot '+esc(e.interest||"Alto")+'"></span><span class="cat">'+esc(e.cat||"")+'</span>'
         + (e.stand? ' · '+esc(e.stand):'') + '</small></div>'
         + '<div class="racts">'
@@ -980,7 +996,12 @@
           + '<span class="badge"><span class="idot '+esc(e.interest||"Alto")+'"></span>Interés '+esc(e.interest||"Alto").toLowerCase()+'</span></div>';
     html += '<h2>'+esc(e.company)+'</h2><div class="erule"></div>';
     if(e.highlight){ html += '<div class="callout"><b>★ '+esc(e.highlight)+'</b></div>'; }
-    if(e.image){ html += '<img class="ephoto" src="'+e.image+'" alt="">'; }
+    var imgs = e.images && e.images.length ? e.images : (e.image ? [e.image] : []);
+    if(imgs.length){
+      html += '<div class="ephoto-grid" style="grid-template-columns:repeat('+imgs.length+',1fr)">';
+      imgs.forEach(function(src){ html += '<img src="'+src+'" alt="">'; });
+      html += '</div>';
+    }
 
     var specs = [];
     if(e.contact) specs.push({l:"Contacto", v:esc(e.contact)});
@@ -1196,12 +1217,31 @@
     c.addEventListener("click", function(){ setInterest(c.getAttribute("data-v")); });
   });
   $("#f_image").addEventListener("change", async function(ev){
-    var file = ev.target.files && ev.target.files[0]; if(!file) return;
-    try{
-      var dataUrl = await compress(file, 1200, 0.72);
-      pendingImage = dataUrl; updateThumb(dataUrl); toast("Foto lista");
-    }catch(e){ toast("No se pudo procesar la imagen"); }
+    var files = Array.prototype.slice.call(ev.target.files || []);
+    if(!files.length) return;
+    var room = MAX_IMAGES - pendingImages.length;
+    if(room <= 0){ toast("Ya tienes "+MAX_IMAGES+" fotos, quita una para agregar otra"); ev.target.value=""; return; }
+    var toProcess = files.slice(0, room);
+    if(files.length > room) toast("Solo se agregaron "+room+" (máximo "+MAX_IMAGES+" fotos)");
+    for(var i=0;i<toProcess.length;i++){
+      try{
+        var dataUrl = await compress(toProcess[i], 1200, 0.72);
+        pendingImages.push(dataUrl);
+      }catch(e){ toast("No se pudo procesar una imagen"); }
+    }
+    renderImagePicker();
+    if(toProcess.length) toast(toProcess.length>1 ? "Fotos listas" : "Foto lista");
     ev.target.value="";
+  });
+  $("#photopicker").addEventListener("click", function(ev){
+    var rm = ev.target.closest(".rm");
+    if(rm){
+      var i = parseInt(rm.getAttribute("data-i"),10);
+      pendingImages.splice(i,1);
+      renderImagePicker();
+      return;
+    }
+    if(ev.target.closest("#photoAddTile")){ $("#f_image").click(); }
   });
   $("#f_company").addEventListener("keydown", function(ev){ if(ev.key==="Enter"){ ev.preventDefault(); save(); } });
   $("#btnSync").addEventListener("click", function(){ refreshFromServer(false); });
