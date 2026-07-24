@@ -282,7 +282,8 @@
   .entry-slide .erule{height:3px;width:60px;background:var(--blue);margin:20px 0 24px;border-radius:2px}
   .entry-slide .about-text{color:var(--muted);font-size:16.5px;line-height:1.55;margin:-6px 0 22px;max-width:680px}
   .ephoto-grid{display:grid;gap:10px;margin-bottom:24px}
-  .ephoto-grid img{width:100%;height:240px;object-fit:cover;border-radius:14px;border:1px solid var(--border);background:var(--surface)}
+  .ephoto-grid img{width:100%;height:240px;object-fit:cover;border-radius:14px;border:1px solid var(--border);background:var(--surface);cursor:zoom-in;transition:transform .25s cubic-bezier(.22,.61,.36,1),box-shadow .25s ease}
+  .ephoto-grid img:hover{transform:scale(1.45);position:relative;z-index:6;box-shadow:0 18px 40px rgba(20,60,130,.32)}
   .callout{background:var(--surface);border-left:4px solid var(--blue);border-radius:10px;padding:14px 16px;margin-bottom:22px}
   .callout b{font-size:16px;font-weight:700;line-height:1.42;color:var(--ink)}
   .specs{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border-2);border:1px solid var(--border-2);border-radius:14px;overflow:hidden;margin-bottom:22px}
@@ -389,6 +390,7 @@
             <label for="f_cat">Categoría</label>
             <select id="f_cat">
               <option>Materia prima</option>
+              <option>Pintura</option>
               <option>Resinas</option>
               <option>Pigmentos</option>
               <option>Aditivos</option>
