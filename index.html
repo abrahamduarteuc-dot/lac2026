@@ -159,6 +159,7 @@
   .row .rmain b .star{color:var(--blue);margin-left:4px}
   .row .rmain small{color:var(--muted);font-size:12px;display:flex;align-items:center;gap:6px;margin-top:2px}
   .row .rmain small .cat{color:var(--blue);font-weight:700}
+  .row .rmain .about-preview{color:var(--muted);font-size:12px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .idot{width:8px;height:8px;border-radius:50%}
   .idot.Alto{background:var(--ok)}.idot.Medio{background:var(--mid)}.idot.Bajo{background:var(--low)}
   .row .racts{display:flex;gap:4px;flex:none}
@@ -279,6 +280,7 @@
   .entry-slide .eyebrow .badge{margin-left:auto;display:inline-flex;align-items:center;gap:7px;color:var(--ink);background:var(--surface);border:1px solid var(--border);padding:6px 12px;border-radius:999px;letter-spacing:.06em}
   .entry-slide h2{font-size:clamp(30px,6.5vw,52px);line-height:1.02;letter-spacing:-.03em;margin:16px 0 0}
   .entry-slide .erule{height:3px;width:60px;background:var(--blue);margin:20px 0 24px;border-radius:2px}
+  .entry-slide .about-text{color:var(--muted);font-size:16.5px;line-height:1.55;margin:-6px 0 22px;max-width:680px}
   .ephoto-grid{display:grid;gap:10px;margin-bottom:24px}
   .ephoto-grid img{width:100%;height:240px;object-fit:cover;border-radius:14px;border:1px solid var(--border);background:var(--surface)}
   .callout{background:var(--surface);border-left:4px solid var(--blue);border-radius:10px;padding:14px 16px;margin-bottom:22px}
@@ -378,6 +380,10 @@
           <div class="field full">
             <label for="f_company">Empresa / proveedor <span class="req">*</span></label>
             <input type="text" id="f_company" placeholder="Ej. Química Andina S.A." autocomplete="off">
+          </div>
+          <div class="field full">
+            <label for="f_about">Descripción de la empresa</label>
+            <textarea id="f_about" placeholder="A qué se dedican — puedes pegar un fragmento de su sitio web (ej. sección 'Nosotros')"></textarea>
           </div>
           <div class="field">
             <label for="f_cat">Categoría</label>
@@ -523,7 +529,7 @@
 
   function normalizeEntry(e){
     var out = {};
-    ["id","company","cat","stand","contact","phone","email","web","products","notes","highlight","interest"].forEach(function(k){
+    ["id","company","about","cat","stand","contact","phone","email","web","products","notes","highlight","interest"].forEach(function(k){
       out[k] = (e[k]===undefined || e[k]===null) ? "" : String(e[k]);
     });
     var raw = (e.image===undefined || e.image===null) ? "" : String(e.image);
@@ -759,6 +765,7 @@
   function fillForm(e){
     $("#f_id").value = e ? e.id : "";
     $("#f_company").value = e ? e.company||"" : "";
+    $("#f_about").value = e ? e.about||"" : "";
     $("#f_cat").value = e ? (e.cat||"Materia prima") : "Materia prima";
     $("#f_stand").value = e ? e.stand||"" : "";
     $("#f_contact").value = e ? e.contact||"" : "";
@@ -797,6 +804,7 @@
     var e = {
       id: editingId || (Date.now().toString(36) + Math.random().toString(36).slice(2,6)),
       company: company,
+      about: $("#f_about").value.trim(),
       cat: $("#f_cat").value,
       stand: $("#f_stand").value.trim(),
       contact: $("#f_contact").value.trim(),
@@ -843,7 +851,9 @@
         + thumb
         + '<div class="rmain"><b>'+esc(e.company)+(e.highlight?' <span class="star" title="Tiene dato destacado">★</span>':'')+(imgs.length>1?' <span class="star" title="'+imgs.length+' fotos">📷'+imgs.length+'</span>':'')+'</b>'
         + '<small><span class="idot '+esc(e.interest||"Alto")+'"></span><span class="cat">'+esc(e.cat||"")+'</span>'
-        + (e.stand? ' · '+esc(e.stand):'') + '</small></div>'
+        + (e.stand? ' · '+esc(e.stand):'') + '</small>'
+        + (e.about? '<div class="about-preview">'+esc(e.about)+'</div>' : '')
+        + '</div>'
         + '<div class="racts">'
         + '<button class="iconbtn" data-act="up" data-i="'+i+'" '+(i===0?"disabled":"")+' title="Subir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg></button>'
         + '<button class="iconbtn" data-act="down" data-i="'+i+'" '+(i===entries.length-1?"disabled":"")+' title="Bajar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>'
@@ -995,6 +1005,7 @@
           + '<span class="num">'+num+'</span>'
           + '<span class="badge"><span class="idot '+esc(e.interest||"Alto")+'"></span>Interés '+esc(e.interest||"Alto").toLowerCase()+'</span></div>';
     html += '<h2>'+esc(e.company)+'</h2><div class="erule"></div>';
+    if(e.about){ html += '<p class="about-text">'+esc(e.about)+'</p>'; }
     if(e.highlight){ html += '<div class="callout"><b>★ '+esc(e.highlight)+'</b></div>'; }
     var imgs = e.images && e.images.length ? e.images : (e.image ? [e.image] : []);
     if(imgs.length){
