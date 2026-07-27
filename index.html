@@ -1155,8 +1155,16 @@
     if(ev.target.closest(".ephoto-grid img")){ $("#photoPreview").classList.remove("on"); }
   });
   $("#dFull").addEventListener("click", function(){
-    if(!document.fullscreenElement){ (document.documentElement.requestFullscreen || function(){})(); }
-    else{ document.exitFullscreen(); }
+    if(!document.fullscreenElement){
+      if(!document.fullscreenEnabled){ toast("Tu navegador bloquea pantalla completa aquí — prueba la tecla F11"); return; }
+      var req = document.documentElement.requestFullscreen;
+      if(!req){ toast("Tu navegador no soporta este botón — prueba la tecla F11"); return; }
+      req.call(document.documentElement).catch(function(){
+        toast("No se pudo activar — prueba la tecla F11 de tu teclado");
+      });
+    }else{
+      document.exitFullscreen();
+    }
   });
   document.addEventListener("fullscreenchange", function(){
     var on = !!document.fullscreenElement;

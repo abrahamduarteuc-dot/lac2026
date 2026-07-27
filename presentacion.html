@@ -36,6 +36,12 @@
     flex-direction:column;gap:14px;background:var(--white);text-align:center;padding:24px;
   }
   .status.hidden{display:none}
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:11px 18px;border-radius:999px;font-size:14px;font-weight:600;
+    box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.25s;z-index:80;
+  }
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
   .spinner{width:34px;height:34px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--blue);animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
   .status p{color:var(--muted);font-size:14px;max-width:320px;margin:0}
@@ -210,6 +216,8 @@
     <img class="photo-preview" id="photoPreview" alt="">
   </div>
 
+  <div class="toast" id="toast"></div>
+
 <script>
 (function(){
   "use strict";
@@ -219,6 +227,11 @@
 
   var $ = function(s){ return document.querySelector(s); };
   var esc = function(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); };
+  var toastT;
+  function toast(msg){
+    var t = $("#toast"); t.textContent = msg; t.classList.add("on");
+    clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove("on"); }, 2400);
+  }
 
   var entries = [];
   var agendaState = {};
@@ -463,8 +476,16 @@
     if(ev.target.closest(".ephoto-grid img")){ $("#photoPreview").classList.remove("on"); }
   });
   $("#dFull").addEventListener("click", function(){
-    if(!document.fullscreenElement){ (document.documentElement.requestFullscreen || function(){})(); }
-    else{ document.exitFullscreen(); }
+    if(!document.fullscreenElement){
+      if(!document.fullscreenEnabled){ toast("Tu navegador bloquea pantalla completa aquí — prueba la tecla F11"); return; }
+      var req = document.documentElement.requestFullscreen;
+      if(!req){ toast("Tu navegador no soporta este botón — prueba la tecla F11"); return; }
+      req.call(document.documentElement).catch(function(){
+        toast("No se pudo activar — prueba la tecla F11 de tu teclado");
+      });
+    }else{
+      document.exitFullscreen();
+    }
   });
   document.addEventListener("fullscreenchange", function(){
     var on = !!document.fullscreenElement;
