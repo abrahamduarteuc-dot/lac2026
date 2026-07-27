@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>LAC 2026 — Presentación</title>
+<style>
+  :root{
+    --white:#FFFFFF;
+    --ink:#0F2540;
+    --muted:#5A6B82;
+    --blue:#2E6CF6;
+    --blue-strong:#1B4FC2;
+    --surface:#EAF1FC;
+    --surface-2:#F4F8FE;
+    --border:#D6E2F5;
+    --border-2:#E6EEFA;
+    --ok:#1F9D64;
+    --mid:#E0A100;
+    --low:#8A96A8;
+    --shadow:0 10px 30px rgba(20,60,130,.10);
+    --shadow-sm:0 4px 14px rgba(20,60,130,.08);
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%}
+  body{
+    font-family:var(--sans);color:var(--ink);
+    -webkit-font-smoothing:antialiased;overflow:hidden;
+  }
+
+  /* ---------- Loading / error ---------- */
+  .status{
+    position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;gap:14px;background:var(--white);text-align:center;padding:24px;
+  }
+  .status.hidden{display:none}
+  .spinner{width:34px;height:34px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--blue);animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .status p{color:var(--muted);font-size:14px;max-width:320px;margin:0}
+  .status b{font-size:16px}
+  .retrybtn{border:1px solid var(--border);background:#fff;color:var(--ink);font-weight:600;font-size:13px;padding:9px 16px;border-radius:999px;cursor:pointer}
+
+  /* ---------- Presentation deck ---------- */
+  .deck{
+    position:fixed;inset:0;z-index:1;display:none;flex-direction:column;
+    background:
+      radial-gradient(1400px 800px at 96% -10%, var(--surface) 0%, transparent 55%),
+      radial-gradient(1100px 650px at -10% 105%, #F0F5FE 0%, transparent 50%),
+      var(--white);
+  }
+  .deck.on{display:flex}
+  .deck-top{
+    position:absolute;top:0;left:0;right:0;z-index:3;display:flex;align-items:center;gap:12px;
+    padding:14px 18px;padding-top:max(14px,env(safe-area-inset-top));
+  }
+  .deck-top .dcount{font:700 13px/1 var(--mono);color:var(--muted);letter-spacing:.08em}
+  .viewport{flex:1;overflow:hidden;position:relative}
+  .track{display:flex;height:100%;transition:transform .42s cubic-bezier(.22,.61,.36,1)}
+  .slide{min-width:100%;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+  .tapzone{position:absolute;top:0;bottom:0;width:22%;z-index:2;cursor:pointer}
+  .tapzone.left{left:0}.tapzone.right{right:0}
+
+  .deck-nav{
+    position:absolute;left:0;right:0;bottom:0;z-index:3;
+    display:flex;align-items:center;justify-content:center;gap:14px;
+    padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));
+    background:linear-gradient(0deg,rgba(255,255,255,.95),transparent);
+  }
+  .navbtn{
+    border:1px solid var(--border);background:#fff;color:var(--ink);border-radius:999px;
+    width:52px;height:52px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm);transition:.15s;
+  }
+  .navbtn:hover{border-color:var(--blue);color:var(--blue)}
+  .navbtn:disabled{opacity:.3;cursor:not-allowed}
+  .navbtn svg{width:22px;height:22px}
+  .progress{flex:1;max-width:280px;height:5px;background:var(--surface);border-radius:999px;overflow:hidden}
+  .progress i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--blue-strong));width:0;transition:width .35s}
+
+  /* ---- Slide: title ---- */
+  .s-inner{max-width:820px;margin:0 auto;padding:76px 40px 96px;min-height:100%;display:flex;flex-direction:column}
+  .title-slide{justify-content:center;text-align:left}
+  .title-copy{max-width:640px}
+  .title-slide .kicker{font:700 12px/1 var(--mono);letter-spacing:.32em;text-transform:uppercase;color:var(--blue)}
+  .title-slide h1{font-size:clamp(48px,11vw,116px);line-height:.92;letter-spacing:-.04em;margin:18px 0 0}
+  .title-slide h1 em{font-style:normal;color:var(--blue)}
+  .title-slide .rule{height:4px;width:96px;background:linear-gradient(90deg,var(--blue),transparent);margin:26px 0;border-radius:2px}
+  .title-slide .lead{font-size:19px;color:var(--muted);max-width:520px;line-height:1.5}
+  .title-slide .facts{display:flex;flex-wrap:wrap;gap:14px 40px;margin-top:38px}
+  .fact{display:flex;flex-direction:column;gap:5px}
+  .fact label{color:var(--muted)}
+  .fact b{font-size:19px;letter-spacing:-.01em}
+  .fact .who{font-family:var(--mono);font-size:16px}
+  .swatch-panel{display:none}
+  .swatch{border-radius:12px;box-shadow:0 3px 10px rgba(20,60,130,.14)}
+
+  @media (min-width:900px){
+    .s-inner{max-width:1180px;padding:0 56px}
+    .title-slide{display:grid;grid-template-columns:1.15fr .85fr;align-items:center;gap:60px}
+    .swatch-panel{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;aspect-ratio:6/5}
+    .swatch:nth-child(3n+2){transform:translateY(14px)}
+    .swatch:nth-child(5n){transform:translateY(-10px)}
+    .entry-slide .s-inner,.deck-empty{max-width:900px;margin:0 auto}
+  }
+  @media (min-width:1400px){
+    .s-inner{max-width:1360px;padding:0 80px}
+    .title-slide h1{font-size:clamp(80px,9vw,150px)}
+    .title-slide .lead{font-size:21px}
+    .fact b{font-size:21px}
+    .entry-slide h2{font-size:clamp(38px,5.2vw,64px)}
+    .entry-slide .s-inner{max-width:1000px}
+    .spec .val{font-size:18px}
+    .block p{font-size:17.5px}
+    .callout b{font-size:18px}
+  }
+
+  /* ---- Slide: entry (also reused by coverage slide) ---- */
+  .entry-slide .eyebrow{display:flex;align-items:center;gap:12px;font:700 12px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--blue)}
+  .entry-slide .eyebrow .num{color:var(--muted)}
+  .entry-slide .eyebrow .badge{margin-left:auto;display:inline-flex;align-items:center;gap:7px;color:var(--ink);background:var(--surface);border:1px solid var(--border);padding:6px 12px;border-radius:999px;letter-spacing:.06em}
+  .entry-slide h2{font-size:clamp(30px,6.5vw,52px);line-height:1.02;letter-spacing:-.03em;margin:16px 0 0}
+  .entry-slide .erule{height:3px;width:60px;background:var(--blue);margin:20px 0 24px;border-radius:2px}
+  .entry-slide .about-text{color:var(--muted);font-size:16.5px;line-height:1.55;margin:-6px 0 22px;max-width:680px}
+  .ephoto-grid{display:grid;gap:10px;margin-bottom:24px}
+  .ephoto-grid img{width:100%;height:240px;object-fit:cover;border-radius:14px;border:1px solid var(--border);background:var(--surface);cursor:zoom-in;transition:transform .25s cubic-bezier(.22,.61,.36,1),box-shadow .25s ease}
+  .ephoto-grid img:hover{transform:scale(1.45);position:relative;z-index:6;box-shadow:0 18px 40px rgba(20,60,130,.32)}
+  .callout{background:var(--surface);border-left:4px solid var(--blue);border-radius:10px;padding:14px 16px;margin-bottom:22px}
+  .callout b{font-size:16px;font-weight:700;line-height:1.42;color:var(--ink)}
+  .specs{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border-2);border:1px solid var(--border-2);border-radius:14px;overflow:hidden;margin-bottom:22px}
+  .spec{background:#fff;padding:14px 16px;min-width:0}
+  .spec.full{grid-column:1/-1}
+  .spec label{color:var(--muted);font-size:11px}
+  .spec .val{font-size:16px;margin-top:5px;word-break:break-word}
+  .spec .val.mono{font-family:var(--mono);font-size:15px}
+  .spec a{color:var(--blue-strong);text-decoration:none}
+  .block{margin-bottom:20px}
+  .block label{color:var(--muted);font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+  .block p{margin:8px 0 0;font-size:16px;line-height:1.55;white-space:pre-wrap}
+
+  /* ---- Slide: coverage ---- */
+  .cov-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:26px}
+  .cov-card{background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:16px}
+  .cov-card label{color:var(--muted);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase}
+  .cov-card b{display:block;font-size:26px;margin-top:4px;letter-spacing:-.02em}
+  .cov-list{display:flex;flex-direction:column;gap:0}
+  .cov-item{display:flex;gap:10px;align-items:baseline;font-size:14px;border-bottom:1px solid var(--border-2);padding:9px 0}
+  .cov-item .t{font-family:var(--mono);font-size:11px;color:var(--muted);flex:none;width:92px}
+  .cov-item .ti{flex:1}
+  .cov-item .who{margin-left:auto;font-size:10.5px;color:var(--blue);font-weight:800;flex:none;text-transform:uppercase;letter-spacing:.04em}
+
+  .deck-empty{margin:auto;text-align:center;color:var(--muted);padding:40px}
+  .deck-empty b{display:block;color:var(--ink);font-size:20px;margin-bottom:8px}
+
+  @media (max-width:640px){
+    .s-inner{padding:70px 22px 92px}
+    .specs{grid-template-columns:1fr}
+    .title-slide h1{margin-top:14px}
+    .cov-grid{grid-template-columns:1fr 1fr}
+  }
+  @media (prefers-reduced-motion:reduce){ .track{transition:none} }
+
+  @media print{
+    .deck-top,.deck-nav,.tapzone,.status{display:none !important}
+    body{overflow:visible}
+    .deck{position:static !important;display:block !important;background:#fff}
+    .viewport{overflow:visible !important}
+    .track{display:block !important;transform:none !important}
+    .slide{min-width:0 !important;width:100% !important;height:auto !important;page-break-after:always;overflow:visible !important}
+    .s-inner{padding:36px 40px !important;min-height:0}
+    .title-slide{min-height:90vh;display:block !important}
+    .swatch-panel{display:none !important}
+    .title-copy{max-width:100% !important}
+  }
+</style>
+</head>
+<body>
+
+  <div class="status" id="status">
+    <div class="spinner"></div>
+    <b>Cargando presentación…</b>
+    <p>Trayendo la información más reciente.</p>
+  </div>
+
+  <div class="deck" id="deck">
+    <div class="deck-top"><div class="dcount" id="dCount">01 / 01</div></div>
+    <div class="viewport">
+      <div class="tapzone left" id="tapLeft"></div>
+      <div class="tapzone right" id="tapRight"></div>
+      <div class="track" id="track"></div>
+    </div>
+    <div class="deck-nav">
+      <button class="navbtn" id="navPrev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m15 18-6-6 6-6"/></svg></button>
+      <div class="progress"><i id="progressBar"></i></div>
+      <button class="navbtn" id="navNext"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m9 18 6-6-6-6"/></svg></button>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  // Misma Google Sheet que usa la app de captura — esta página solo LEE, nunca escribe.
+  var CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycbxSfGF6IZfK548qtxARVn0SwFyLY0gPhqrFJXMuikor1NujezdVP7Vx2kX83EiojD07/exec" };
+
+  var $ = function(s){ return document.querySelector(s); };
+  var esc = function(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); };
+
+  var entries = [];
+  var agendaState = {};
+  var meta = { title:"LAC 2026", subtitle:"Registro de fabricantes, proveedores y equipos observados en la feria.", people:"Abraham Duarte · Vicente Benavides", dates:"20/07 – 23/07 · México" };
+  var current = 0;
+
+  function normalizeEntry(e){
+    var out = {};
+    ["id","company","about","cat","stand","contact","phone","email","web","products","notes","highlight","interest"].forEach(function(k){
+      out[k] = (e[k]===undefined || e[k]===null) ? "" : String(e[k]);
+    });
+    var raw = (e.image===undefined || e.image===null) ? "" : String(e.image);
+    out.images = raw ? raw.split("|").map(function(s){return s.trim();}).filter(function(s){return s.length>0;}) : [];
+    return out;
+  }
+
+  /* ---------------- Agenda: mismo programa (páginas 4-7) para la lámina de cobertura ---------------- */
+  var AGENDA_RAW = [
+    { day:"Martes 21 de julio", key:"mar21", rooms:[
+      { room:"Sala Paladio", items:[
+        {time:"14:00 - 15:00", title:"Estrategias de reformulación en pinturas arquitectónicas estándar y económicas para eliminar APEO/PFAS", speaker:"Heidi Verónica Salinas Sánchez"},
+        {time:"15:00 - 16:00", title:"Polímeros VINNAPAS® Grado H: claves para la tecnología de morteros secos y revestimientos minerales", speaker:"Héctor Sánchez Rico"},
+        {time:"16:00 - 17:00", title:"Bermocoll EHM MAX: elevando el estándar en pinturas base agua", speaker:"Dra. Juana María Montoya"},
+        {time:"17:00 - 18:00", title:"Pigmentos funcionales", speaker:"Patricia Pérez Masnou"}
+      ]},
+      { room:"Sala Níquel", items:[
+        {time:"14:00 - 15:00", title:"Dispersantes de pigmentos: desde Tinting in Plant hasta sistemas tintométricos", speaker:"Leandro Lemos Alves"},
+        {time:"15:00 - 16:00", title:"Factores y criterios de selección de caolines según el acabado del recubrimiento", speaker:"Valeria Itzel García Salcido"},
+        {time:"16:00 - 17:00", title:"Más desempeño, menor huella: el futuro de los recubrimientos sustentables con dispersiones de BASF", speaker:"Edgar Vargas"},
+        {time:"17:00 - 18:00", title:"El impacto oculto de la dispersión: la ingeniería detrás de recubrimientos de alto valor", speaker:"Mauricio Covarrubias"}
+      ]},
+      { room:"Sala Platino", items:[
+        {time:"13:00 - 14:00", title:"Coating the Future and Navigating Change", speaker:"Daniel S. Murad — President & CEO, Chemquest", tag:"Magistral"},
+        {time:"14:00 - 15:00", title:"La dispersión como clave de la optimización de tus formulaciones", speaker:"Brandon Oliver Peña García"},
+        {time:"15:00 - 16:00", title:"Soluciones en polímeros y aditivos para formulaciones sustentables en pinturas y construcción", speaker:"Maximino Martínez Torres"},
+        {time:"16:00 - 17:00", title:"Fundamentos para el éxito de un sistema tintométrico: de la formulación al punto de venta", speaker:"César Manuel Charles Ortiz"},
+        {time:"17:00 - 18:00", title:"Surfactantes para la polimerización en emulsión", speaker:"Dra. C. Tamara Jurado Vázquez"}
+      ]},
+      { room:"Sala Cobalto", items:[
+        {time:"14:00 - 15:00", title:"ARBOCEL Fiber Gels", speaker:"Sergio Méndez Caviedes"},
+        {time:"15:00 - 16:00", title:"Protección antimicrobiana en pinturas y recubrimientos: de los retos a la tecnología y las aplicaciones", speaker:"Evelyn Füssel"},
+        {time:"16:00 - 17:00", title:"Agentes curantes epóxicos - NextGen Technologies para minimizar la huella ambiental", speaker:"Marcelo Rufo"},
+        {time:"17:00 - 18:00", title:"Polieteramina monofuncional de nueva generación para sistemas en base acuosa", speaker:"Angie Maldonado"}
+      ]}
+    ]},
+    { day:"Miércoles 22 de julio", key:"mie22", rooms:[
+      { room:"Sala Paladio", items:[
+        {time:"12:00 - 13:00", title:"Preservación 360°: innovación, regulación y desempeño en sistemas microbianos para pinturas", speaker:"Mauricio Franzin"},
+        {time:"13:00 - 14:00", title:"Introducción a los OMU: resinas uretánicas de bajo VOC", speaker:"José Víctor Amador Noya"},
+        {time:"14:00 - 15:00", title:"Endurecedores de próxima generación", speaker:"Alejandro Bribiesca"},
+        {time:"15:00 - 16:00", title:"Uso de microesferas poliméricas huecas en recubrimientos arquitectónicos, para aumentar reflectancia solar (Cool Roofs)", speaker:"Luis Javier Cebrián Ramos"},
+        {time:"16:00 - 17:00", title:"¿Cómo mejorar el desempeño de tu pintura usando emulsiones especiales?", speaker:"Ing. Mauro Paderco · Ing. Oliveria Navarro"},
+        {time:"17:00 - 18:00", title:"El riesgo invisible en plantas de pinturas: sanitización como ventaja competitiva", speaker:"Luz Adriana Vega Cabrera"}
+      ]},
+      { room:"Sala Níquel", items:[
+        {time:"12:00 - 13:00", title:"High Performance Conductive Coatings with Specialty Carbon Blacks", speaker:"Carlos Hernández"},
+        {time:"13:00 - 14:00", title:"Soluciones sustentables para recubrimientos industriales de alto desempeño, tecnología CSNL", speaker:"Óscar Rodríguez"},
+        {time:"14:00 - 15:00", title:"Diseño de recubrimientos acrílicos base agua: brillo, formación de película y resistencia a la intemperie", speaker:"Luis Alberto Escobar Saucedo"},
+        {time:"15:00 - 16:00", title:"Digitalización industrial y automatización del envasado en pinturas y recubrimientos", speaker:"Carlos Pacha"},
+        {time:"16:00 - 17:00", title:"Durabilidad desde el diseño: recubrimientos base agua para concreto", speaker:"Juan Daniel Rodríguez Martínez"},
+        {time:"17:00 - 18:00", title:"Hiperdispersante para todas las químicas", speaker:"Pamila Heitkoeter de Melo"}
+      ]},
+      { room:"Sala Platino", items:[
+        {time:"12:00 - 13:00", title:"Soluciones de Dow para pinturas de tráfico de alto desempeño", speaker:"Heidi Verónica Salinas Sánchez"},
+        {time:"13:00 - 14:00", title:"Mujeres que están redefiniendo el liderazgo industrial", speaker:"Deyanira Villafranca S. — Mentora, Programa Mujeres en Pinturas y Tintas · Bienvenida: Blanca Estela Pérez", tag:"Magistral"},
+        {time:"14:00 - 15:00", title:"Tecnología de partículas a partir de sílica sintética: reología, modificación de superficie y durabilidad", speaker:"Francisco Cortés Baledón"},
+        {time:"15:00 - 16:00", title:"Recubrimientos ante un mercado en transformación", speaker:"Modera: Karen Lazcano Botello (CONCAMIN) · Participan: Álvaro Amutio Morett (Kilker), Julio Enciso (PPG Comex), Sebastián Cammaert (COREV México)", tag:"Panel"},
+        {time:"16:00 - 17:00", title:"Opciones de color en camino a la sustentabilidad: NOM-123-SEMARNAT-1998 y NOM-252-SSA1-2011", speaker:"Fabiola Luis López"},
+        {time:"17:00 - 18:00", title:"Amaval® Aditivo Multifuncional", speaker:"Jonathan Lizárraga Loaiza"}
+      ]},
+      { room:"Sala Cobalto", items:[
+        {time:"12:00 - 13:00", title:"Novel Polymer Additive for zero VOC architectural paints with Improved Open Time", speaker:"Zeena Cherian", en:true},
+        {time:"13:00 - 14:00", title:"Beyond Black Beyond Limits – Delivering Performance in Liquid Systems", speaker:"Markus Alexander Mahn", en:true},
+        {time:"14:00 - 15:00", title:"Recubrimientos sostenibles y de alto rendimiento con polioles de policaprolactona Capa", speaker:"Dr. Chuck Jones", en:true},
+        {time:"15:00 - 16:00", title:"Dispersor modular en línea, para dispersiones minerales fáciles y rápidas", speaker:"Jianling Yao", en:true},
+        {time:"16:00 - 17:00", title:"Enhancing Durability and Protection - Superdurable Resins for Powder Coatings", speaker:"Frederick Cummings", en:true},
+        {time:"17:00 - 18:00", title:"Construyendo el futuro de los impermeabilizantes elastoméricos: mercado y abordaje Dow para América Latina", speaker:"Carlos Suárez y Zury Anastacio"}
+      ]}
+    ]},
+    { day:"Jueves 23 de julio", key:"jue23", rooms:[
+      { room:"Sala Paladio", items:[
+        {time:"12:00 - 13:00", title:"Protección contra explosiones: criterios para seleccionar, instalar y mantener equipos eléctricos seguros en áreas peligrosas", speaker:"Wencai Zhong", tag:"Panel"},
+        {time:"13:00 - 14:00", title:"Recubrimientos repelentes al agua basados en resinas versáticas", speaker:"Paola Jazmín Arzate Martínez"},
+        {time:"14:00 - 15:00", title:"Tecnologías de dispersión y molienda NETZSCH", speaker:"Rogelio Camacho Luna"},
+        {time:"15:00 - 16:00", title:"Cómo aprovechar al máximo tu viscosímetro rotacional", speaker:"Delia Ivette Arellano Rosas"},
+        {time:"16:00 - 17:00", title:"Del blah blah blah a la acción... crea tu avatar", speaker:"Cristian Fahren"}
+      ]},
+      { room:"Sala Níquel", items:[
+        {time:"12:00 - 13:00", title:"Retos y oportunidades al fabricar pintura mediante slurries", speaker:"Javier Rodríguez"},
+        {time:"13:00 - 14:00", title:"Dispersantes poliméricos y emulsionantes NPEO-free para formulaciones preparadas para el futuro", speaker:"Alexandre Decimoni"},
+        {time:"14:00 - 15:00", title:"Más allá de la estabilidad en concentrados de pigmento", speaker:"Salvador Acosta Rodríguez"},
+        {time:"15:00 - 16:00", title:"Soluciones sustentables para pinturas base agua: reología natural y coalescencia No-VOC", speaker:"Adrián Vega"},
+        {time:"16:00 - 17:00", title:"Emulsiones nanométricas", speaker:"Carlos Manuel Ibarrarán Díaz"}
+      ]},
+      { room:"Sala Platino", items:[
+        {time:"12:00 - 13:00", title:"IA y automatización en la transformación de la industria manufacturera", speaker:"Modera: Mariana Alva Cal y Mayor (CONCAMIN) · Participan: Luzselene Rincón (PPG Comex), Luis de los Santos (Sudarshan), Lorena Uribe (Sherwin Williams), Félix Romano (CONCAMIN/Diltex), Alejandro Preinfalk (Siemens México)", tag:"Panel"},
+        {time:"13:00 - 14:00", title:"Alto desempeño con menor huella de carbono: el futuro sustentable de los pigmentos", speaker:"Tânia Regina Moreno"},
+        {time:"14:00 - 15:00", title:"Sistemas avanzados de silanos para protección de techos por membrana e impermeabilizante", speaker:"Rosemeire Ciro"},
+        {time:"15:00 - 16:00", title:"Repensando el desempeño en recubrimientos: la nueva generación de aditivos multifuncionales", speaker:"Edivaldo Bibiano de Borba"},
+        {time:"16:00 - 17:00", title:"Cargas funcionales de alto desempeño, incluyendo un pigmento anticorrosivo de silicato de magnesio de extrema pureza", speaker:"Jorge Arturo Alcalá Hermosillo"}
+      ]},
+      { room:"Sala Cobalto", items:[
+        {time:"12:00 - 13:00", title:"La NOM-003 ya viene: reformular sin plomo es más fácil (y barato) de lo que crees", speaker:"Paul Cevallos"},
+        {time:"13:00 - 14:00", title:"Clariant's Innovative Additive Solutions: PTFE-Free Technologies, Light Stabilizers, and Bio-Based Materials", speaker:"Mariano Suárez", en:true},
+        {time:"14:00 - 15:00", title:"Barita y talco: minerales naturales como cargas funcionales de alta performance", speaker:"Pablo Seijo Iramain"},
+        {time:"15:00 - 16:00", title:"Perfilado térmico: la clave para la calidad en tu proceso de recubrimiento", speaker:"Leo López Antonel"}
+      ]}
+    ]}
+  ];
+  var SESSIONS = [];
+  AGENDA_RAW.forEach(function(d){
+    d.rooms.forEach(function(r, ri){
+      r.items.forEach(function(it, ii){
+        SESSIONS.push({ id: d.key+"_"+ri+"_"+ii, dayLabel:d.day, dayKey:d.key, room:r.room, time:it.time, title:it.title, speaker:it.speaker, tag:it.tag||"", en:!!it.en });
+      });
+    });
+  });
+
+  /* ---------------- Presentación ---------------- */
+  function catLabel(c){ return (c||"Proveedor").toUpperCase(); }
+
+  function slideEntry(e, i, total){
+    var num = String(i+1).padStart(2,"0") + " / " + String(total).padStart(2,"0");
+    var html = '<div class="slide"><div class="s-inner entry-slide">';
+    html += '<div class="eyebrow">'+esc(catLabel(e.cat))
+          + '<span class="num">'+num+'</span>'
+          + '<span class="badge"><span class="idot"></span>Interés '+esc(e.interest||"Alto").toLowerCase()+'</span></div>';
+    html += '<h2>'+esc(e.company)+'</h2><div class="erule"></div>';
+    if(e.about){ html += '<p class="about-text">'+esc(e.about)+'</p>'; }
+    if(e.highlight){ html += '<div class="callout"><b>★ '+esc(e.highlight)+'</b></div>'; }
+    var imgs = e.images && e.images.length ? e.images : [];
+    if(imgs.length){
+      html += '<div class="ephoto-grid" style="grid-template-columns:repeat('+imgs.length+',1fr)">';
+      imgs.forEach(function(src){ html += '<img src="'+src+'" alt="">'; });
+      html += '</div>';
+    }
+    var specs = [];
+    if(e.contact) specs.push({l:"Contacto", v:esc(e.contact)});
+    if(e.stand)   specs.push({l:"Ubicación", v:esc(e.stand)});
+    if(e.phone)   specs.push({l:"Teléfono", v:'<a href="tel:'+esc(e.phone.replace(/\s/g,''))+'">'+esc(e.phone)+'</a>', mono:true});
+    if(e.email)   specs.push({l:"Email", v:'<a href="mailto:'+esc(e.email)+'">'+esc(e.email)+'</a>', mono:true});
+    if(e.web)     specs.push({l:"Sitio web", v:'<a href="'+esc(/^https?:/.test(e.web)?e.web:"https://"+e.web)+'" target="_blank" rel="noopener">'+esc(e.web)+'</a>', mono:true, full:(specs.length%2===0)});
+    if(specs.length){
+      html += '<div class="specs">';
+      specs.forEach(function(s){
+        html += '<div class="spec'+(s.full?' full':'')+'"><label>'+s.l+'</label><div class="val'+(s.mono?' mono':'')+'">'+s.v+'</div></div>';
+      });
+      html += '</div>';
+    }
+    if(e.products){ html += '<div class="block"><label>Productos / qué ofrecen</label><p>'+esc(e.products)+'</p></div>'; }
+    if(e.notes){ html += '<div class="block"><label>Observaciones</label><p>'+esc(e.notes)+'</p></div>'; }
+    html += '</div></div>';
+    return html;
+  }
+
+  function buildCoverageSlide(){
+    var done = SESSIONS.filter(function(s){ var st = agendaState[s.id]; return st && st.done; });
+    if(!done.length) return "";
+    var totalByDay = {}, doneByDay = {};
+    SESSIONS.forEach(function(s){ totalByDay[s.dayLabel] = (totalByDay[s.dayLabel]||0)+1; });
+    done.forEach(function(s){ doneByDay[s.dayLabel] = (doneByDay[s.dayLabel]||0)+1; });
+    var cards = "";
+    AGENDA_RAW.forEach(function(d){
+      cards += '<div class="cov-card"><label>'+esc(d.day)+'</label><b>'+(doneByDay[d.day]||0)+'<span style="font-size:15px;color:var(--muted);font-weight:600"> / '+totalByDay[d.day]+'</span></b></div>';
+    });
+    var sorted = done.slice().sort(function(a,b){ return (a.dayKey+a.time).localeCompare(b.dayKey+b.time); });
+    var list = sorted.map(function(s){
+      var st = agendaState[s.id];
+      return '<div class="cov-item"><span class="t">'+esc(s.time)+'</span><span class="ti">'+esc(s.title)+'</span>'+(st.who?'<span class="who">'+esc(st.who)+'</span>':'')+'</div>';
+    }).join("");
+    return '<div class="slide"><div class="s-inner entry-slide"><div class="eyebrow">Cobertura del evento<span class="num">'+done.length+' / '+SESSIONS.length+' sesiones</span></div>'
+      + '<h2>Charlas y paneles cubiertos</h2><div class="erule"></div>'
+      + '<div class="cov-grid">'+cards+'</div>'
+      + '<div class="cov-list">'+list+'</div>'
+      + '</div></div>';
+  }
+
+  function buildSwatchGrid(){
+    var palette = ["#EAF1FC","#D6E2F5","#BFD3F2","#9DBBF0","#7AA2ED","#588AEA","#2E6CF6","#1B4FC2","#123A96"];
+    var n = 24, html = "";
+    for(var i=0;i<n;i++){
+      var c = palette[(i*5 + Math.floor(i/6)) % palette.length];
+      html += '<div class="swatch" style="background:'+c+'"></div>';
+    }
+    return html;
+  }
+
+  function buildDeck(){
+    var track = $("#track");
+    var title = '<div class="slide"><div class="s-inner title-slide">'
+      + '<div class="title-copy">'
+      +   '<div class="kicker">Feria internacional · México</div>'
+      +   '<h1>'+esc(meta.title).replace(/2026/,'<em>2026</em>')+'</h1>'
+      +   '<div class="rule"></div>'
+      +   '<p class="lead">'+esc(meta.subtitle)+'</p>'
+      +   '<div class="facts">'
+      +     '<div class="fact"><label>Asistentes</label><b class="who">'+esc(meta.people)+'</b></div>'
+      +     '<div class="fact"><label>Fechas</label><b>'+esc(meta.dates)+'</b></div>'
+      +   '</div>'
+      + '</div>'
+      + '<div class="swatch-panel">'+buildSwatchGrid()+'</div>'
+      + '</div></div>';
+    var coverage = buildCoverageSlide();
+    var body = "";
+    if(entries.length){
+      entries.forEach(function(e,i){ body += slideEntry(e,i,entries.length); });
+    }else{
+      body = '<div class="slide"><div class="s-inner"><div class="deck-empty"><b>Todavía no hay proveedores cargados</b>Vuelve a revisar más tarde.</div></div></div>';
+    }
+    track.innerHTML = title + coverage + body;
+  }
+
+  function slideCount(){ return $("#track").children.length; }
+  function goTo(i, animate){
+    var n = slideCount();
+    current = Math.max(0, Math.min(i, n-1));
+    var track = $("#track");
+    if(animate===false){ track.style.transition="none"; }
+    track.style.transform = "translateX(-"+(current*100)+"%)";
+    if(animate===false){ track.offsetHeight; track.style.transition=""; }
+    var slides = track.children;
+    for(var k=0;k<slides.length;k++){ slides[k].scrollTop = 0; }
+    $("#dCount").textContent = String(current+1).padStart(2,"0")+" / "+String(n).padStart(2,"0");
+    $("#navPrev").disabled = current===0;
+    $("#navNext").disabled = current===n-1;
+    $("#progressBar").style.width = (n<=1?100:(current/(n-1))*100)+"%";
+  }
+  function next(){ goTo(current+1); }
+  function prev(){ goTo(current-1); }
+
+  $("#navNext").addEventListener("click", next);
+  $("#navPrev").addEventListener("click", prev);
+  $("#tapRight").addEventListener("click", next);
+  $("#tapLeft").addEventListener("click", prev);
+  document.addEventListener("keydown", function(ev){
+    if(ev.key==="ArrowRight"||ev.key===" "){ next(); ev.preventDefault(); }
+    else if(ev.key==="ArrowLeft"){ prev(); }
+    else if(ev.key==="Home"){ goTo(0); }
+    else if(ev.key==="End"){ goTo(slideCount()-1); }
+  });
+  var tx0=null, ty0=null;
+  var vp = $(".viewport");
+  vp.addEventListener("touchstart", function(ev){ var t=ev.changedTouches[0]; tx0=t.clientX; ty0=t.clientY; }, {passive:true});
+  vp.addEventListener("touchend", function(ev){
+    if(tx0===null) return;
+    var t=ev.changedTouches[0]; var dx=t.clientX-tx0, dy=t.clientY-ty0;
+    if(Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)*1.4){ if(dx<0) next(); else prev(); }
+    tx0=ty0=null;
+  }, {passive:true});
+
+  /* ---------------- Carga de datos (solo lectura) ---------------- */
+  function showError(){
+    $("#status").innerHTML = '<b>No se pudo cargar la presentación</b><p>Revisa tu conexión a internet e inténtalo de nuevo.</p><button class="retrybtn" id="retryBtn">Reintentar</button>';
+    $("#status").classList.remove("hidden");
+    $("#retryBtn").addEventListener("click", load);
+  }
+
+  async function load(){
+    $("#status").innerHTML = '<div class="spinner"></div><b>Cargando presentación…</b><p>Trayendo la información más reciente.</p>';
+    $("#status").classList.remove("hidden");
+    try{
+      var res = await fetch(CONFIG.API_URL + "?action=all&t=" + Date.now());
+      if(!res.ok) throw new Error("http "+res.status);
+      var data = await res.json();
+      entries = Array.isArray(data.entries) ? data.entries.map(normalizeEntry) : [];
+      agendaState = data.agenda || {};
+      if(data.meta){
+        if(data.meta.title) meta.title = data.meta.title;
+        if(data.meta.subtitle) meta.subtitle = data.meta.subtitle;
+        if(data.meta.people) meta.people = data.meta.people;
+        if(data.meta.dates) meta.dates = data.meta.dates;
+      }
+      buildDeck();
+      $("#deck").classList.add("on");
+      goTo(0, false);
+      $("#status").classList.add("hidden");
+    }catch(err){
+      showError();
+    }
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>
