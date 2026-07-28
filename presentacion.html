@@ -145,6 +145,7 @@
   }
   .photo-preview.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
   .callout{background:var(--surface);border-left:4px solid var(--blue);border-radius:10px;padding:14px 16px;margin-bottom:22px}
+  .callout-label{color:var(--muted);font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;margin:0 0 8px}
   .callout b{font-size:16px;font-weight:700;line-height:1.42;color:var(--ink)}
   .specs{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border-2);border:1px solid var(--border-2);border-radius:14px;overflow:hidden;margin-bottom:22px}
   .spec{background:#fff;padding:14px 16px;min-width:0}
@@ -240,7 +241,7 @@
 
   function normalizeEntry(e){
     var out = {};
-    ["id","company","about","cat","stand","contact","phone","email","web","products","notes","highlight","interest"].forEach(function(k){
+    ["id","company","about","cat","stand","contact","phone","email","web","products","notes","highlight","codelpa","interest"].forEach(function(k){
       out[k] = (e[k]===undefined || e[k]===null) ? "" : String(e[k]);
     });
     var raw = (e.image===undefined || e.image===null) ? "" : String(e.image);
@@ -361,7 +362,8 @@
           + '<span class="badge"><span class="idot"></span>Interés '+esc(e.interest||"Alto").toLowerCase()+'</span></div>';
     html += '<h2>'+esc(e.company)+'</h2><div class="erule"></div>';
     if(e.about){ html += '<p class="about-text">'+esc(e.about)+'</p>'; }
-    if(e.highlight){ html += '<div class="callout"><b>★ '+esc(e.highlight)+'</b></div>'; }
+    if(e.highlight){ html += '<div class="callout-label">★ Dato destacado</div><div class="callout"><b>'+esc(e.highlight)+'</b></div>'; }
+    if(e.codelpa){ html += '<div class="callout-label">◆ Utilidad para Codelpa</div><div class="callout"><b>'+esc(e.codelpa)+'</b></div>'; }
     var imgs = e.images && e.images.length ? e.images : [];
     if(imgs.length){
       html += '<div class="ephoto-grid" style="grid-template-columns:repeat('+imgs.length+',1fr)">';
