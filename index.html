@@ -319,6 +319,21 @@
   .cov-item .ti{flex:1}
   .cov-item .who{margin-left:auto;font-size:10.5px;color:var(--blue);font-weight:800;flex:none;text-transform:uppercase;letter-spacing:.04em}
 
+  /* ---- Slide: resumen de cierre ---- */
+  .summary-table{width:100%;border-collapse:collapse;font-size:14px}
+  .summary-table thead th{
+    position:sticky;top:0;background:var(--white);z-index:1;
+    text-align:left;padding:10px 16px 12px 0;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+    border-bottom:2px solid var(--border);
+  }
+  .summary-table tbody td{padding:13px 16px 13px 0;border-bottom:1px solid var(--border-2);color:var(--ink);vertical-align:top}
+  .summary-table tbody tr:hover{background:var(--surface-2)}
+  .summary-table .cat-pill{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--blue);background:var(--surface);border:1px solid var(--border);padding:3px 10px;border-radius:999px;white-space:nowrap}
+  .summary-table .company{font-weight:700}
+  .summary-table .mono{font-family:var(--mono);font-size:12.5px}
+  .summary-table a{color:var(--blue-strong);text-decoration:none}
+  .summary-table .muted{color:var(--low)}
+
   .deck-empty{margin:auto;text-align:center;color:var(--muted);padding:40px}
   .deck-empty b{display:block;color:var(--ink);font-size:20px;margin-bottom:8px}
 
@@ -1032,7 +1047,7 @@
     var imgs = e.images && e.images.length ? e.images : (e.image ? [e.image] : []);
     if(imgs.length){
       html += '<div class="ephoto-grid" style="grid-template-columns:repeat('+imgs.length+',1fr)">';
-      imgs.forEach(function(src){ html += '<img src="'+src+'" alt="">'; });
+      imgs.forEach(function(src){ html += '<img src="'+src+'" alt="" loading="lazy" decoding="async">'; });
       html += '</div>';
     }
 
@@ -1077,6 +1092,30 @@
       + '</div></div>';
   }
 
+  function buildSummaryTableSlide(){
+    if(!entries.length) return "";
+    var sorted = entries.slice().sort(function(a,b){
+      var ca = (a.cat||"").localeCompare(b.cat||"");
+      if(ca !== 0) return ca;
+      return (a.company||"").localeCompare(b.company||"");
+    });
+    var rows = sorted.map(function(e){
+      var email = e.email ? '<a href="mailto:'+esc(e.email)+'">'+esc(e.email)+'</a>' : '<span class="muted">—</span>';
+      var phone = e.phone ? '<a class="mono" href="tel:'+esc(e.phone.replace(/\s/g,''))+'">'+esc(e.phone)+'</a>' : '<span class="muted">—</span>';
+      return '<tr>'
+        + '<td><span class="cat-pill">'+esc(e.cat||"—")+'</span></td>'
+        + '<td class="company">'+esc(e.company||"—")+'</td>'
+        + '<td>'+email+'</td>'
+        + '<td class="mono">'+phone+'</td>'
+        + '</tr>';
+    }).join("");
+    return '<div class="slide"><div class="s-inner entry-slide">'
+      + '<div class="eyebrow">Cierre<span class="num">'+entries.length+' proveedores</span></div>'
+      + '<h2>Resumen de contactos</h2><div class="erule"></div>'
+      + '<table class="summary-table"><thead><tr><th>Categoría</th><th>Proveedor</th><th>Email</th><th>Teléfono</th></tr></thead><tbody>'+rows+'</tbody></table>'
+      + '</div></div>';
+  }
+
   function buildSwatchGrid(){
     var palette = ["#EAF1FC","#D6E2F5","#BFD3F2","#9DBBF0","#7AA2ED","#588AEA","#2E6CF6","#1B4FC2","#123A96"];
     var n = 24;
@@ -1112,7 +1151,8 @@
     }else{
       body = '<div class="slide"><div class="s-inner"><div class="deck-empty"><b>Sin proveedores todavía</b>Vuelve a "Capturar" para agregar el primero.</div></div></div>';
     }
-    track.innerHTML = title + coverage + body;
+    var summary = buildSummaryTableSlide();
+    track.innerHTML = title + coverage + body + summary;
   }
 
   function slideCount(){ return $("#track").children.length; }
