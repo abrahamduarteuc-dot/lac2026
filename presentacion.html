@@ -455,13 +455,13 @@
         + '</tr>';
     }).join("");
 
-    var withImgs = entries.filter(function(e){ return e.images && e.images.length; });
+    var allPhotos = [];
+    entries.forEach(function(e){ if(e.images && e.images.length){ allPhotos = allPhotos.concat(e.images); } });
     var photosHtml = "";
-    if(withImgs.length){
-      var n = Math.min(6, withImgs.length);
-      var stride = withImgs.length / n;
-      for(var i=0;i<n;i++){
-        var src = withImgs[Math.floor(i*stride)].images[0];
+    if(allPhotos.length){
+      var target = Math.max(6, Math.ceil(sorted.length / 2));
+      for(var i=0;i<target;i++){
+        var src = allPhotos[i % allPhotos.length];
         photosHtml += '<img src="'+src+'" alt="" loading="lazy">';
       }
     }
